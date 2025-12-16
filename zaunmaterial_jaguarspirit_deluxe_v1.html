@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b08" />
+  <title>ZaunMaterial – Jaguar‑Spirit Deluxe</title>
+
+  <!-- PWA-ish (works as "Add to Home Screen" web app) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ZaunMaterial">
+
+  <style>
+    :root{
+      --bg: #0b0b08;
+      --panel:#12110d;
+      --panel2:#17150f;
+      --ink:#f2eddc;
+      --muted:#bdb49a;
+      --gold:#d4b15f;
+      --gold2:#a07b2e;
+      --red:#ff4b4b;
+      --green:#3be28a;
+      --line:rgba(212,177,95,.22);
+      --shadow: 0 14px 35px rgba(0,0,0,.45);
+      --radius: 16px;
+      --radius2: 12px;
+      --tap: 52px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:
+        radial-gradient(1200px 800px at 20% -10%, rgba(212,177,95,.14), transparent 55%),
+        radial-gradient(900px 700px at 90% 0%, rgba(255,75,75,.12), transparent 52%),
+        radial-gradient(900px 700px at 80% 110%, rgba(59,226,138,.10), transparent 55%),
+        linear-gradient(180deg, #070705 0%, #0b0b08 40%, #070705 100%);
+      color:var(--ink);
+      font-family:var(--sans);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding: env(safe-area-inset-top) 12px env(safe-area-inset-bottom) 12px;
+    }
+    header{
+      position:sticky; top:0;
+      padding-top: env(safe-area-inset-top);
+      background: linear-gradient(180deg, rgba(11,11,8,.92), rgba(11,11,8,.64), transparent);
+      z-index: 50;
+      backdrop-filter: blur(10px);
+    }
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px;
+      padding: 12px 6px 10px 6px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      min-width:0;
+    }
+    .sigil{
+      width:40px; height:40px;
+      border-radius: 14px;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,.10), transparent 45%),
+        linear-gradient(135deg, rgba(212,177,95,.95), rgba(160,123,46,.95));
+      box-shadow: 0 8px 18px rgba(0,0,0,.45);
+      position:relative;
+      flex:0 0 auto;
+    }
+    .sigil:after{
+      content:"🐆";
+      position:absolute; inset:0;
+      display:grid; place-items:center;
+      font-size:20px;
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,.35));
+    }
+    .titlewrap{min-width:0}
+    h1{
+      margin:0;
+      font-size: 16px;
+      letter-spacing: .2px;
+      line-height:1.1;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .subtitle{
+      font-size: 11px;
+      color:var(--muted);
+      margin-top:2px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 10px 12px;
+      border:1px solid var(--line);
+      background: rgba(18,17,13,.75);
+      border-radius: 999px;
+      box-shadow: 0 8px 18px rgba(0,0,0,.25);
+      color: var(--ink);
+      font-size: 12px;
+      user-select:none;
+    }
+    .chip b{color: var(--gold)}
+    .tabs{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:8px;
+      padding: 0 6px 10px 6px;
+    }
+    .tabbtn{
+      height: 44px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(18,17,13,.62);
+      color: var(--ink);
+      font-weight: 650;
+      letter-spacing:.2px;
+      display:flex; align-items:center; justify-content:center;
+      gap:8px;
+      box-shadow: 0 10px 22px rgba(0,0,0,.30);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tabbtn.active{
+      background:
+        radial-gradient(400px 250px at 30% 20%, rgba(212,177,95,.26), transparent 55%),
+        linear-gradient(180deg, rgba(23,21,15,.92), rgba(18,17,13,.85));
+      border-color: rgba(212,177,95,.35);
+      box-shadow: 0 12px 26px rgba(0,0,0,.45);
+    }
+    main{padding: 10px 6px 24px 6px;}
+    .panel{
+      background:
+        radial-gradient(900px 500px at 20% 0%, rgba(212,177,95,.10), transparent 55%),
+        linear-gradient(180deg, rgba(23,21,15,.92), rgba(18,17,13,.92));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+    .row > *{flex:1}
+    .row.tight > *{flex:unset}
+    label{
+      display:block;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 6px 0 6px;
+    }
+    input, select, textarea{
+      width:100%;
+      height: var(--tap);
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(212,177,95,.20);
+      background: rgba(10,10,8,.55);
+      color: var(--ink);
+      outline:none;
+      font-size: 16px;
+    }
+    textarea{height:auto; min-height: 90px; padding: 12px; border-radius: 14px;}
+    input::placeholder, textarea::placeholder{color: rgba(189,180,154,.55)}
+    .btn{
+      height: var(--tap);
+      border-radius: 14px;
+      border: 1px solid rgba(212,177,95,.25);
+      background:
+        radial-gradient(600px 250px at 20% 20%, rgba(212,177,95,.18), transparent 55%),
+        linear-gradient(180deg, rgba(23,21,15,.92), rgba(18,17,13,.92));
+      color: var(--ink);
+      font-weight: 750;
+      letter-spacing:.2px;
+      padding: 0 14px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      box-shadow: 0 12px 26px rgba(0,0,0,.35);
+      -webkit-tap-highlight-color: transparent;
+      user-select:none;
+    }
+    .btn:active{transform: translateY(1px)}
+    .btn.primary{
+      border-color: rgba(212,177,95,.45);
+      background:
+        radial-gradient(600px 250px at 20% 20%, rgba(212,177,95,.34), transparent 55%),
+        linear-gradient(180deg, rgba(30,27,18,.94), rgba(18,17,13,.92));
+    }
+    .btn.danger{
+      border-color: rgba(255,75,75,.35);
+      background:
+        radial-gradient(600px 250px at 20% 20%, rgba(255,75,75,.20), transparent 55%),
+        linear-gradient(180deg, rgba(23,21,15,.92), rgba(18,17,13,.92));
+    }
+    .btn.ghost{background: rgba(18,17,13,.45); box-shadow:none;}
+    .btn.small{height: 44px; border-radius: 12px; font-size: 13px; padding: 0 12px;}
+    .btnbar{display:flex; gap:10px; flex-wrap:wrap;}
+    .btnbar .btn{flex:1}
+    .list{display:flex; flex-direction:column; gap:10px;}
+    .card{border: 1px solid rgba(212,177,95,.18); border-radius: var(--radius2); background: rgba(10,10,8,.35); padding: 12px;}
+    .cardhead{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+    .cardtitle{font-weight: 800; letter-spacing:.2px; font-size: 14px; margin:0; line-height:1.2;}
+    .meta{font-size: 12px; color: var(--muted); margin-top:4px; line-height:1.25;}
+    .pill{display:inline-flex; align-items:center; gap:8px; padding: 8px 10px; border-radius: 999px; border: 1px solid rgba(212,177,95,.18); background: rgba(18,17,13,.55); color: var(--muted); font-size: 12px; white-space:nowrap;}
+    .pill.good{border-color: rgba(59,226,138,.25); color: rgba(59,226,138,.95)}
+    .pill.warn{border-color: rgba(255,75,75,.25); color: rgba(255,75,75,.95)}
+    .grid3{display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px}
+    .sep{height:1px; background: rgba(212,177,95,.14); margin: 12px 0;}
+    .hint{font-size: 12px; color: var(--muted); line-height: 1.35;}
+    .mono{font-family: var(--mono)}
+    .toast{
+      position: fixed;
+      left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 12px);
+      background: rgba(18,17,13,.92);
+      border: 1px solid rgba(212,177,95,.25);
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(0,0,0,.55);
+      padding: 12px 14px;
+      display:none;
+      z-index: 999;
+    }
+    .toast.show{display:block}
+    .toast .t{font-weight:800}
+    .toast .d{color:var(--muted); font-size:12px; margin-top:2px; line-height:1.3}
+    .kpi{display:flex; gap:10px; flex-wrap:wrap;}
+    .kpi .pill{flex:1; justify-content:center}
+    .goldText{color: var(--gold)}
+    .footer{margin-top: 10px; font-size: 11px; color: rgba(189,180,154,.65); text-align:center;}
+  </style>
+</head>
+
+<body>
+<header>
+  <div class="topbar">
+    <div class="brand">
+      <div class="sigil" aria-hidden="true"></div>
+      <div class="titlewrap">
+        <h1>ZaunMaterial</h1>
+        <div class="subtitle">Jaguar‑Spirit Deluxe • Zaunbau Materiallisten & Rechner</div>
+      </div>
+    </div>
+    <div class="chip" id="chipProject">
+      <span>Projekt:</span> <b id="chipProjectName">—</b>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tabbtn active" data-tab="projects">📁 Projekte</button>
+    <button class="tabbtn" data-tab="materials">🧱 Material</button>
+    <button class="tabbtn" data-tab="calc">🧮 Rechner</button>
+    <button class="tabbtn" data-tab="export">📤 Export</button>
+  </div>
+</header>
+
+<main>
+  <section id="tab-projects">
+    <div class="panel">
+      <div class="row tight" style="gap:12px; align-items:flex-end;">
+        <div style="flex:2">
+          <label>Projektname</label>
+          <input id="pTitle" placeholder="z.B. Zaun Müller – 18m Doppelstab" autocomplete="off" />
+        </div>
+        <div style="flex:1">
+          <label>Adresse (optional)</label>
+          <input id="pAddr" placeholder="Musterstraße 1" autocomplete="off" />
+        </div>
+      </div>
+      <div class="btnbar" style="margin-top:10px;">
+        <button class="btn primary" id="btnAddProject">➕ Projekt anlegen</button>
+        <button class="btn danger" id="btnDeleteProject">🗑️ Projekt löschen</button>
+      </div>
+      <div class="sep"></div>
+      <div class="hint">
+        Tipp: Nutze iOS‑Diktat (🎤) in den Feldern – das ist die zuverlässigste „Sprachfunktion“ auf dem iPhone.
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row tight" style="align-items:center;">
+        <div style="flex:2">
+          <label>Projekt wählen</label>
+          <select id="projectSelect"></select>
+        </div>
+        <div style="flex:1">
+          <label>Suche</label>
+          <input id="projectSearch" placeholder="Filter…" />
+        </div>
+      </div>
+
+      <div class="sep"></div>
+      <div class="list" id="projectList"></div>
+    </div>
+  </section>
+
+  <section id="tab-materials" style="display:none;">
+    <div class="panel">
+      <div class="row tight" style="align-items:flex-end;">
+        <div style="flex:2">
+          <label>Neues Material</label>
+          <input id="mName" placeholder="z.B. Pfosten 60x40 – 2300mm" />
+        </div>
+        <div style="flex:1">
+          <label>Menge</label>
+          <input id="mQty" inputmode="decimal" placeholder="0" />
+        </div>
+        <div style="flex:1">
+          <label>Einheit</label>
+          <select id="mUnit">
+            <option>Stk</option><option>m</option><option>Sack</option><option>Paket</option>
+            <option>Palette</option><option>Kg</option><option>L</option><option>m³</option>
+          </select>
+        </div>
+      </div>
+      <label>Notiz (optional)</label>
+      <input id="mNote" placeholder="z.B. Anthrazit RAL7016 / Doppelstab" />
+      <div class="btnbar" style="margin-top:10px;">
+        <button class="btn primary" id="btnAddItem">➕ Hinzufügen</button>
+        <button class="btn" id="btnPresetFence">🧱 Preset: Standard‑Zaunliste</button>
+      </div>
+      <div class="btnbar" style="margin-top:10px;">
+        <button class="btn" id="btnPresetGeneral">🧰 Preset: Allgemein</button>
+        <button class="btn danger" id="btnClearDone">🧹 Erledigte löschen</button>
+      </div>
+      <div class="sep"></div>
+      <div class="hint">
+        Anschlussleisten bleiben bewusst manuell. Pfostenleisten werden über den Rechner aus Abschnitten übernommen.
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row tight">
+        <div style="flex:2">
+          <label>Material-Suche</label>
+          <input id="materialSearch" placeholder="Name/Notiz…" />
+        </div>
+        <div style="flex:1">
+          <label>Filter</label>
+          <select id="materialFilter">
+            <option value="all">Alle</option>
+            <option value="open">Offen</option>
+            <option value="done">Erledigt</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+      <div class="list" id="materialList"></div>
+    </div>
+  </section>
+
+  <section id="tab-calc" style="display:none;">
+    <div class="panel">
+      <div class="row tight" style="align-items:flex-end;">
+        <div style="flex:1.2">
+          <label>Mattenbreite (m)</label>
+          <input id="cPanelW" inputmode="decimal" placeholder="2,5" />
+        </div>
+        <div style="flex:1.3">
+          <label>Standard‑Höhe (cm)</label>
+          <select id="cDefaultH"></select>
+        </div>
+        <div style="flex:1.5">
+          <label>Neuer Abschnitt</label>
+          <button class="btn primary" id="btnAddSeg">➕ Abschnitt</button>
+        </div>
+      </div>
+      <div class="sep"></div>
+      <div class="hint">
+        Regel: <span class="goldText">Pfostenleisten</span> = 1 pro Pfosten (gerade) + 2 pro Eckpfosten. Anschlussleisten werden nicht berechnet.
+      </div>
+    </div>
+
+    <div class="panel"><div class="list" id="segList"></div></div>
+
+    <div class="panel">
+      <div class="kpi" id="kpi"></div>
+      <div class="sep"></div>
+      <div class="btnbar">
+        <button class="btn primary" id="btnApplySums">✅ Summen in Material übernehmen</button>
+        <button class="btn" id="btnSegPresetDemo">✨ Demo‑Abschnitte</button>
+      </div>
+      <div class="hint" style="margin-top:10px;">
+        „Summen übernehmen“ upsertet: Matten (Summe), Pfosten (gerade) (Summe), Eckpfosten (Summe), Pfostenleisten (Summe).
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-export" style="display:none;">
+    <div class="panel">
+      <label>Export‑Text (Vorschau)</label>
+      <textarea id="exportPreview" readonly></textarea>
+
+      <div class="btnbar" style="margin-top:10px;">
+        <button class="btn primary" id="btnShare">📲 Teilen (WhatsApp)</button>
+        <button class="btn" id="btnDownload">⬇️ Download (.txt)</button>
+      </div>
+
+      <div class="btnbar" style="margin-top:10px;">
+        <button class="btn ghost" id="btnCopy">📋 Kopieren</button>
+        <button class="btn danger" id="btnFactoryReset">☠️ Reset (alles löschen)</button>
+      </div>
+
+      <div class="sep"></div>
+      <div class="hint">
+        Hinweis: Auf iOS öffnet „Teilen“ das System‑Share‑Sheet – dort kannst du WhatsApp auswählen (wenn installiert).
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="hint">
+        <b class="goldText">Installation am iPhone:</b><br>
+        1) Datei in Safari öffnen → 2) Teilen → 3) „Zum Home‑Bildschirm“.<br>
+        Danach wirkt es wie eine App. Offline läuft’s über LocalStorage.
+      </div>
+      <div class="footer">ZaunMaterial • v1.0 • Jaguar‑Spirit Deluxe</div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast">
+  <div class="t" id="toastT">OK</div>
+  <div class="d" id="toastD">—</div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const STORAGE_KEY = "js_zaunmaterial_deluxe_v1";
+  const nowISO = () => new Date().toISOString();
+  const uid = () => Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+  const DEFAULT_HEIGHTS = [60,80,100,120,140,160,180,200];
+
+  let state = loadState();
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const s = JSON.parse(raw);
+        if(!s.version) s.version = "1.0";
+        if(!Array.isArray(s.projects)) s.projects = [];
+        return s;
+      }
+    }catch(e){}
+    return { version:"1.0", selectedProjectId:null, projects:[] };
+  }
+
+  function saveState(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    refreshAll();
+  }
+
+  function toast(t, d=""){
+    const el = document.getElementById("toast");
+    document.getElementById("toastT").textContent = t;
+    document.getElementById("toastD").textContent = d;
+    el.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove("show"), 2100);
+  }
+
+  const cleanNum = (s) => String(s ?? "").trim().replace(",", ".");
+  const toNum = (s, fallback=0) => {
+    const n = Number(cleanNum(s));
+    return Number.isFinite(n) ? n : fallback;
+  };
+  const clampInt = (n, min=0) => Math.max(min, Math.trunc(Number.isFinite(n) ? n : min));
+  const fmt = (n) => {
+    if(!Number.isFinite(n)) return "0";
+    if(Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n));
+    return n.toFixed(2);
+  };
+  const byCreatedDesc = (a,b) => (b.createdAt||"").localeCompare(a.createdAt||"");
+
+  function currentProject(){
+    const id = state.selectedProjectId;
+    if(!id) return null;
+    return state.projects.find(p => p.id === id) || null;
+  }
+
+  function ensureProjectSelected(){
+    if(state.selectedProjectId && currentProject()) return;
+    if(state.projects.length){
+      state.selectedProjectId = state.projects[0].id;
+    }else{
+      state.selectedProjectId = null;
+    }
+  }
+
+  const tabBtns = [...document.querySelectorAll(".tabbtn")];
+  tabBtns.forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
+
+  function setTab(tab){
+    tabBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+    document.getElementById("tab-projects").style.display = (tab==="projects") ? "" : "none";
+    document.getElementById("tab-materials").style.display = (tab==="materials") ? "" : "none";
+    document.getElementById("tab-calc").style.display = (tab==="calc") ? "" : "none";
+    document.getElementById("tab-export").style.display = (tab==="export") ? "" : "none";
+    refreshAll();
+  }
+
+  const el = (id) => document.getElementById(id);
+
+  const pTitle = el("pTitle");
+  const pAddr = el("pAddr");
+  const btnAddProject = el("btnAddProject");
+  const btnDeleteProject = el("btnDeleteProject");
+  const projectSelect = el("projectSelect");
+  const projectList = el("projectList");
+  const projectSearch = el("projectSearch");
+
+  const mName = el("mName");
+  const mQty = el("mQty");
+  const mUnit = el("mUnit");
+  const mNote = el("mNote");
+  const btnAddItem = el("btnAddItem");
+  const btnPresetFence = el("btnPresetFence");
+  const btnPresetGeneral = el("btnPresetGeneral");
+  const btnClearDone = el("btnClearDone");
+  const materialSearch = el("materialSearch");
+  const materialFilter = el("materialFilter");
+  const materialList = el("materialList");
+
+  const cPanelW = el("cPanelW");
+  const cDefaultH = el("cDefaultH");
+  const btnAddSeg = el("btnAddSeg");
+  const segList = el("segList");
+  const kpi = el("kpi");
+  const btnApplySums = el("btnApplySums");
+  const btnSegPresetDemo = el("btnSegPresetDemo");
+
+  const exportPreview = el("exportPreview");
+  const btnShare = el("btnShare");
+  const btnDownload = el("btnDownload");
+  const btnCopy = el("btnCopy");
+  const btnFactoryReset = el("btnFactoryReset");
+
+  const chipProjectName = el("chipProjectName");
+
+  function fillHeights(){
+    cDefaultH.innerHTML = "";
+    DEFAULT_HEIGHTS.forEach(h => {
+      const o = document.createElement("option");
+      o.value = String(h);
+      o.textContent = `${h} cm`;
+      cDefaultH.appendChild(o);
+    });
+  }
+  fillHeights();
+
+  btnAddProject.addEventListener("click", () => {
+    const title = pTitle.value.trim();
+    if(!title){ toast("Projektname fehlt", "Bitte einen Namen eingeben."); return; }
+    const addr = pAddr.value.trim();
+    const proj = { id: uid(), title, address: addr, createdAt: nowISO(), items: [], segments: [] };
+    state.projects.unshift(proj);
+    state.selectedProjectId = proj.id;
+    pTitle.value = "";
+    pAddr.value = "";
+    toast("Projekt angelegt", title);
+    saveState();
+  });
+
+  btnDeleteProject.addEventListener("click", () => {
+    const p = currentProject();
+    if(!p){ toast("Kein Projekt", "Erst ein Projekt wählen."); return; }
+    if(!confirm(`Projekt wirklich löschen?\n\n${p.title}\n\n(Alle Listen & Abschnitte werden entfernt.)`)) return;
+    state.projects = state.projects.filter(x => x.id !== p.id);
+    ensureProjectSelected();
+    toast("Projekt gelöscht", p.title);
+    saveState();
+  });
+
+  projectSelect.addEventListener("change", () => {
+    state.selectedProjectId = projectSelect.value || null;
+    saveState();
+  });
+
+  projectSearch.addEventListener("input", refreshProjectsList);
+
+  function refreshProjects(){
+    ensureProjectSelected();
+    projectSelect.innerHTML = "";
+    state.projects.forEach(p => {
+      const o = document.createElement("option");
+      o.value = p.id;
+      o.textContent = p.title;
+      projectSelect.appendChild(o);
+    });
+    if(state.selectedProjectId) projectSelect.value = state.selectedProjectId;
+    chipProjectName.textContent = currentProject()?.title || "—";
+  }
+
+  function refreshProjectsList(){
+    const q = projectSearch.value.trim().toLowerCase();
+    projectList.innerHTML = "";
+
+    const filtered = state.projects
+      .filter(p => !q || p.title.toLowerCase().includes(q) || (p.address||"").toLowerCase().includes(q))
+      .sort(byCreatedDesc);
+
+    if(!filtered.length){
+      projectList.innerHTML = `<div class="hint">Keine Projekte gefunden.</div>`;
+      return;
+    }
+
+    filtered.forEach(p => {
+      const isActive = (p.id === state.selectedProjectId);
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <div class="cardhead">
+          <div style="min-width:0">
+            <div class="cardtitle">${escapeHtml(p.title)} ${isActive ? '<span class="pill good">aktiv</span>' : ''}</div>
+            <div class="meta">${escapeHtml(p.address || "—")} • <span class="mono">${escapeHtml((p.createdAt||"").slice(0,10))}</span></div>
+          </div>
+          <button class="btn small ${isActive ? 'ghost':'primary'}">${isActive ? '✅' : 'Wählen'}</button>
+        </div>
+        <div class="sep"></div>
+        <div class="kpi">
+          <span class="pill">Abschnitte: <b class="goldText">${(p.segments||[]).length}</b></span>
+          <span class="pill">Material: <b class="goldText">${(p.items||[]).length}</b></span>
+        </div>
+      `;
+      const btn = card.querySelector("button");
+      btn.addEventListener("click", () => {
+        state.selectedProjectId = p.id;
+        toast("Projekt aktiv", p.title);
+        saveState();
+      });
+      projectList.appendChild(card);
+    });
+  }
+
+  btnAddItem.addEventListener("click", () => {
+    const p = currentProject();
+    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
+    const name = mName.value.trim();
+    if(!name){ toast("Material fehlt", "Bitte Name eingeben."); return; }
+    const qty = toNum(mQty.value, 0);
+    const unit = mUnit.value;
+    const note = mNote.value.trim();
+    p.items.unshift({ id: uid(), name, qty, unit, note, done: false, createdAt: nowISO() });
+    mName.value = ""; mQty.value = ""; mNote.value = "";
+    toast("Hinzugefügt", name);
+    saveState();
+  });
+
+  btnPresetFence.addEventListener("click", () => {
+    const p = currentProject();
+    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
+    const preset = [
+      { name:"Anschlussleisten", qty:0, unit:"Stk", note:"manuell", done:false },
+      { name:"Pfosten – 2000mm", qty:0, unit:"Stk", note:"z.B. 60x40", done:false },
+      { name:"Pfosten – 2300mm", qty:0, unit:"Stk", note:"z.B. 60x40", done:false },
+      { name:"Pfosten – 2600mm", qty:0, unit:"Stk", note:"z.B. 60x40", done:false },
+      { name:"Eckpfosten – 2000mm", qty:0, unit:"Stk", note:"", done:false },
+      { name:"Eckpfosten – 2300mm", qty:0, unit:"Stk", note:"", done:false },
+      { name:"Eckpfosten – 2600mm", qty:0, unit:"Stk", note:"", done:false },
+      { name:"Matten 2,50m – Höhe (wählbar)", qty:0, unit:"Stk", note:"Doppelstab", done:false },
+      { name:"Beton", qty:0, unit:"Sack", note:"25kg", done:false }
+    ];
+    insertAvoidDupItems(p, preset, "Preset eingefügt", "Standard‑Zaunliste");
+  });
+
+  btnPresetGeneral.addEventListener("click", () => {
+    const p = currentProject();
+    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
+    const preset = [
+      { name:"Schrauben/Muttern/Unterlegscheiben", qty:0, unit:"Paket", note:"", done:false },
+      { name:"Befestigungsklemmen / Halter", qty:0, unit:"Stk", note:"", done:false },
+      { name:"Abdeckkappen Pfosten", qty:0, unit:"Stk", note:"", done:false },
+      { name:"Schnur / Markierungsspray", qty:0, unit:"Stk", note:"", done:false },
+      { name:"Pfostenträger / Bodenhülsen (optional)", qty:0, unit:"Stk", note:"", done:false },
+      { name:"Korrosionsschutz / Zinkspray (optional)", qty:0, unit:"Stk", note:"", done:false }
+    ];
+    insertAvoidDupItems(p, preset, "Preset eingefügt", "Allgemein");
+  });
+
+  btnClearDone.addEventListener("click", () => {
+    const p = currentProject();
+    if(!p) return;
+    const before = p.items.length;
+    p.items = p.items.filter(it => !it.done);
+    toast("Erledigte gelöscht", `${before - p.items.length} entfernt`);
+    saveState();
+  });
+
+  materialSearch.addEventListener("input", refreshMaterials);
+  materialFilter.addEventListener("change", refreshMaterials);
+
+  function insertAvoidDupItems(project, presetItems, t, d){
+    const existing = new Set((project.items||[]).map(x => (x.name||"").toLowerCase()));
+    let added = 0;
+    presetItems.forEach(it => {
+      const key = (it.name||"").toLowerCase();
+      if(existing.has(key)) return;
+      project.items.unshift({ id: uid(), name: it.name, qty: it.qty, unit: it.unit, note: it.note, done: !!it.done, createdAt: nowISO() });
+      existing.add(key);
+      added++;
+    });
+    toast(t, `${d} • +${added}`);
+    saveState();
+  }
+
+  function refreshMaterials(){
+    const p = currentProject();
+    materialList.innerHTML = "";
+    if(!p){ materialList.innerHTML = `<div class="hint">Kein Projekt aktiv.</div>`; return; }
+    const q = materialSearch.value.trim().toLowerCase();
+    const f = materialFilter.value;
+
+    const items = (p.items||[]).filter(it => {
+      const matchQ = !q || (it.name||"").toLowerCase().includes(q) || (it.note||"").toLowerCase().includes(q);
+      const matchF = (f==="all") || (f==="open" && !it.done) || (f==="done" && it.done);
+      return matchQ && matchF;
+    });
+
+    if(!items.length){ materialList.innerHTML = `<div class="hint">Keine Einträge.</div>`; return; }
+
+    items.forEach(it => {
+      const card = document.createElement("div");
+      card.className = "card";
+      const donePill = it.done ? `<span class="pill good">✅ erledigt</span>` : `<span class="pill warn">⬜️ offen</span>`;
+      card.innerHTML = `
+        <div class="cardhead">
+          <div style="min-width:0">
+            <div class="cardtitle">${escapeHtml(it.name)} ${donePill}</div>
+            <div class="meta">
+              Menge: <b class="goldText">${fmt(toNum(it.qty,0))}</b> ${escapeHtml(it.unit||"")}
+              ${it.note ? ` • ${escapeHtml(it.note)}` : ``}
+            </div>
+          </div>
+          <div class="btnbar" style="flex:0 0 auto;">
+            <button class="btn small">${it.done ? "↩︎" : "✅"}</button>
+            <button class="btn small danger">🗑️</button>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="grid3">
+          <div>
+            <label>Menge</label>
+            <input inputmode="decimal" value="${escapeAttr(fmt(toNum(it.qty,0)))}" />
+          </div>
+          <div>
+            <label>Einheit</label>
+            <select>
+              ${["Stk","m","Sack","Paket","Palette","Kg","L","m³"].map(u => `<option ${u===(it.unit||"Stk")?"selected":""}>${u}</option>`).join("")}
+            </select>
+          </div>
+          <div>
+            <label>Notiz</label>
+            <input value="${escapeAttr(it.note||"")}" placeholder="optional" />
+          </div>
+        </div>
+      `;
+
+      const [btnToggle, btnDel] = card.querySelectorAll("button");
+      btnToggle.addEventListener("click", () => { it.done = !it.done; saveState(); });
+      btnDel.addEventListener("click", () => {
+        if(!confirm(`Eintrag löschen?\n\n${it.name}`)) return;
+        p.items = p.items.filter(x => x.id !== it.id);
+        saveState();
+      });
+
+      card.querySelectorAll("input,select").forEach(ctrl => {
+        ctrl.addEventListener("change", () => {
+          const inputs = card.querySelectorAll("input");
+          it.qty = toNum(inputs[0].value, 0);
+          it.unit = card.querySelector("select").value;
+          it.note = inputs[1].value.trim();
+          saveState();
+        });
+      });
+
+      materialList.appendChild(card);
+    });
+  }
+
+  function defaultPanelW(){
+    const v = cPanelW.value.trim();
+    if(!v) return 2.5;
+    return Math.max(0.1, toNum(v, 2.5));
+  }
+
+  btnAddSeg.addEventListener("click", () => {
+    const p = currentProject();
+    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
+    const height = Number(cDefaultH.value) || 160;
+    const seg = { id: uid(), title: nextSegmentName(p), length: 10, corners: 2, height };
+    p.segments.push(seg);
+    toast("Abschnitt hinzugefügt", `Abschnitt ${seg.title}`);
+    saveState();
+    setTab("calc");
+  });
+
+  btnSegPresetDemo.addEventListener("click", () => {
+    const p = currentProject();
+    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
+    if(p.segments.length && !confirm("Demo‑Abschnitte hinzufügen? (Bestehende bleiben erhalten)")) return;
+    const h = Number(cDefaultH.value)||160;
+    const demo = [
+      { id: uid(), title: "A", length: 10.0, corners: 2, height: h },
+      { id: uid(), title: "B", length: 4.2, corners: 1, height: h }
+    ];
+    const titles = new Set(p.segments.map(s => (s.title||"").toUpperCase()));
+    demo.forEach(s => {
+      const t = (s.title||"").toUpperCase();
+      if(titles.has(t)) s.title = t + "2";
+      p.segments.push(s);
+      titles.add((s.title||"").toUpperCase());
+    });
+    toast("Demo hinzugefügt", `${demo.length} Abschnitte`);
+    saveState();
+  });
+
+  cPanelW.addEventListener("change", () => { if(!cPanelW.value.trim()) cPanelW.value = "2,5"; refreshCalc(); });
+  cDefaultH.addEventListener("change", refreshCalc);
+
+  btnApplySums.addEventListener("click", () => {
+    const p = currentProject();
+    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
+    if(!p.segments.length){ toast("Keine Abschnitte", "Erst Abschnitte anlegen."); return; }
+    const w = defaultPanelW();
+    const sums = calcSums(p.segments, w);
+
+    upsertItem(p, "Matten 2,50m (Summe)", sums.panels, "Stk", "aus Abschnitten");
+    upsertItem(p, "Pfosten (gerade) (Summe)", sums.postsStraight, "Stk", "aus Abschnitten");
+    if(sums.corners > 0) upsertItem(p, "Eckpfosten (Summe)", sums.corners, "Stk", "aus Abschnitten");
+    upsertItem(p, "Pfostenleisten (Summe)", sums.postStrips, "Stk", "1/Pfosten, 2/Ecke");
+
+    toast("Übernommen", "Summen → Materialliste");
+    saveState();
+    setTab("materials");
+  });
+
+  function nextSegmentName(p){
+    const existing = new Set((p.segments||[]).map(s => (s.title||"").toUpperCase()));
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    for(const L of letters){ if(!existing.has(L)) return L; }
+    let n = 2;
+    while(existing.has("A"+n)) n++;
+    return "A"+n;
+  }
+
+  function calcSums(segments, panelW){
+    let totalPanels=0, totalPostsStraight=0, totalCorners=0, totalPostStrips=0;
+    for(const s of segments){
+      const length = Math.max(0, toNum(s.length, 0));
+      const corners = clampInt(toNum(s.corners,0), 0);
+      const panels = Math.ceil(length / Math.max(0.1, panelW));
+      const postsStraight = panels + 1;
+      const postStrips = postsStraight + (corners * 2);
+      totalPanels += panels;
+      totalPostsStraight += postsStraight;
+      totalCorners += corners;
+      totalPostStrips += postStrips;
+    }
+    return { panels: totalPanels, postsStraight: totalPostsStraight, corners: totalCorners, postStrips: totalPostStrips };
+  }
+
+  function refreshCalc(){
+    const p = currentProject();
+    segList.innerHTML = "";
+    kpi.innerHTML = "";
+    if(!p){ segList.innerHTML = `<div class="hint">Kein Projekt aktiv.</div>`; exportPreview.value=""; return; }
+
+    if(!(p.segments||[]).length){
+      segList.innerHTML = `<div class="hint">Noch keine Abschnitte. Tippe „Abschnitt“ um Teilstrecken anzulegen.</div>`;
+    }else{
+      p.segments.forEach(seg => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <div class="cardhead">
+            <div style="min-width:0">
+              <div class="cardtitle">Abschnitt ${escapeHtml(seg.title || "—")} <span class="pill">Höhe ${escapeHtml(String(seg.height||160))}cm</span></div>
+              <div class="meta">Länge: <b class="goldText">${fmt(toNum(seg.length,0))}</b> m • Ecken: <b class="goldText">${clampInt(toNum(seg.corners,0))}</b></div>
+            </div>
+            <div class="btnbar" style="flex:0 0 auto;">
+              <button class="btn small">✏️</button>
+              <button class="btn small danger">🗑️</button>
+            </div>
+          </div>
+          <div class="sep"></div>
+          <div class="grid3">
+            <div>
+              <label>Name</label>
+              <input value="${escapeAttr(seg.title||"")}" placeholder="A/B/…" />
+            </div>
+            <div>
+              <label>Länge (m)</label>
+              <input inputmode="decimal" value="${escapeAttr(fmt(toNum(seg.length,0)))}" />
+            </div>
+            <div>
+              <label>Ecken</label>
+              <input inputmode="numeric" value="${escapeAttr(String(clampInt(toNum(seg.corners,0))))}" />
+            </div>
+          </div>
+          <div class="row tight" style="margin-top:10px;">
+            <div style="flex:1">
+              <label>Höhe</label>
+              <select>
+                ${DEFAULT_HEIGHTS.map(h => `<option value="${h}" ${Number(seg.height||160)===h?"selected":""}>${h} cm</option>`).join("")}
+              </select>
+            </div>
+            <div style="flex:1">
+              <label>Rechnung (Abschnitt)</label>
+              <div class="pill">
+                Matten: <b class="goldText mono" data-panels>0</b> • Pfosten: <b class="goldText mono" data-posts>0</b> • Leisten: <b class="goldText mono" data-strips>0</b>
+              </div>
+            </div>
+          </div>
+        `;
+
+        const [btnEdit, btnDel] = card.querySelectorAll("button");
+        const nameInp = card.querySelectorAll("input")[0];
+        const lenInp = card.querySelectorAll("input")[1];
+        const corInp = card.querySelectorAll("input")[2];
+        const selH = card.querySelector("select");
+        const outPanels = card.querySelector("[data-panels]");
+        const outPosts = card.querySelector("[data-posts]");
+        const outStrips = card.querySelector("[data-strips]");
+
+        function recalc(){
+          const w = defaultPanelW();
+          const length = Math.max(0, toNum(seg.length,0));
+          const corners = clampInt(toNum(seg.corners,0),0);
+          const panels = Math.ceil(length / Math.max(0.1, w));
+          const posts = panels + 1;
+          const strips = posts + (corners*2);
+          outPanels.textContent = String(panels);
+          outPosts.textContent = String(posts);
+          outStrips.textContent = String(strips);
+        }
+        recalc();
+
+        btnEdit.addEventListener("click", () => { nameInp.focus(); toast("Bearbeiten", `Abschnitt ${seg.title||""}`); });
+        btnDel.addEventListener("click", () => {
+          if(!confirm(`Abschnitt löschen?\n\n${seg.title||"—"}`)) return;
+          p.segments = p.segments.filter(x => x.id !== seg.id);
+          saveState();
+        });
+
+        [nameInp, lenInp, corInp, selH].forEach(ctrl => {
+          ctrl.addEventListener("change", () => {
+            seg.title = nameInp.value.trim() || "A";
+            seg.length = toNum(lenInp.value, 0);
+            seg.corners = clampInt(toNum(corInp.value, 0), 0);
+            seg.height = Number(selH.value) || 160;
+            recalc();
+            saveState();
+          });
+        });
+
+        segList.appendChild(card);
+      });
+    }
+
+    const sums = calcSums(p.segments||[], defaultPanelW());
+    kpi.innerHTML = `
+      <span class="pill">Matten (Summe): <b class="goldText mono">${sums.panels}</b></span>
+      <span class="pill">Pfosten (gerade): <b class="goldText mono">${sums.postsStraight}</b></span>
+      <span class="pill">Eckpfosten: <b class="goldText mono">${sums.corners}</b></span>
+      <span class="pill">Pfostenleisten: <b class="goldText mono">${sums.postStrips}</b></span>
+    `;
+
+    exportPreview.value = buildExportText(p);
+  }
+
+  function upsertItem(project, name, qty, unit, note){
+    const key = name.toLowerCase();
+    const it = (project.items||[]).find(x => (x.name||"").toLowerCase() === key);
+    if(it){
+      it.qty = Number(qty) || 0;
+      it.unit = unit;
+      if(note) it.note = note;
+    }else{
+      project.items.unshift({ id: uid(), name, qty: Number(qty)||0, unit, note: note||"", done:false, createdAt: nowISO() });
+    }
+  }
+
+  function buildExportText(p){
+    const lines = [];
+    lines.push(`Projekt: ${p.title}`);
+    lines.push(`Adresse: ${p.address || "—"}`);
+    lines.push(`Datum: ${new Date().toLocaleDateString("de-DE")}`);
+    lines.push("");
+    if((p.segments||[]).length){
+      const sums = calcSums(p.segments, defaultPanelW());
+      lines.push("Zaunabschnitte:");
+      p.segments.forEach(s => {
+        lines.push(`- ${s.title}: ${fmt(toNum(s.length,0))} m, Höhe ${s.height||160} cm, Ecken ${clampInt(toNum(s.corners,0))}`);
+      });
+      lines.push(`Summe: Matten ${sums.panels} • Pfosten ${sums.postsStraight} • Eckpfosten ${sums.corners} • Pfostenleisten ${sums.postStrips}`);
+      lines.push("");
+    }
+    lines.push("Materialliste:");
+    const items = (p.items||[]).slice();
+    if(!items.length){ lines.push("(leer)"); }
+    else{
+      items.forEach(it => {
+        const box = it.done ? "✅" : "⬜️";
+        const qty = fmt(toNum(it.qty,0));
+        const unit = it.unit || "Stk";
+        const note = it.note ? ` — ${it.note}` : "";
+        lines.push(`${box} ${it.name}: ${qty} ${unit}${note}`);
+      });
+    }
+    return lines.join("\\n");
+  }
+
+  btnShare.addEventListener("click", async () => {
+    const p = currentProject();
+    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
+    const text = buildExportText(p);
+    try{
+      if(navigator.share){
+        await navigator.share({ title: `Materialliste – ${p.title}`, text });
+        toast("Geteilt", "Share‑Sheet geöffnet");
+      }else{
+        await navigator.clipboard.writeText(text);
+        toast("Kopiert", "Teilen nicht verfügbar – Text in Zwischenablage.");
+      }
+    }catch(e){
+      toast("Abgebrochen", "Teilen wurde geschlossen.");
+    }
+  });
+
+  btnDownload.addEventListener("click", () => {
+    const p = currentProject();
+    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
+    const text = buildExportText(p);
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    const safeName = (p.title || "Materialliste").replace(/[^\\w\\-äöüÄÖÜß ]+/g, "").trim().replace(/\\s+/g, "_");
+    a.download = `Materialliste-${safeName || "Zaun"}.txt`;
+    a.href = URL.createObjectURL(blob);
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    toast("Download", "TXT-Datei erstellt.");
+  });
+
+  btnCopy.addEventListener("click", async () => {
+    const p = currentProject();
+    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
+    const text = buildExportText(p);
+    try{ await navigator.clipboard.writeText(text); toast("Kopiert", "Exporttext in Zwischenablage."); }
+    catch(e){ exportPreview.focus(); exportPreview.select(); toast("Hinweis", "Manuell markieren & kopieren (iOS)."); }
+  });
+
+  btnFactoryReset.addEventListener("click", () => {
+    if(!confirm("ALLES löschen?\\n\\nAlle Projekte, Listen und Abschnitte werden entfernt.")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    state = { version:"1.0", selectedProjectId:null, projects:[] };
+    toast("Reset", "Alles gelöscht.");
+    refreshAll();
+  });
+
+  function refreshAll(){
+    refreshProjects();
+    refreshProjectsList();
+    refreshMaterials();
+    refreshCalc();
+    refreshExport();
+  }
+
+  function refreshExport(){
+    const p = currentProject();
+    exportPreview.value = p ? buildExportText(p) : "";
+  }
+
+  function escapeHtml(s){
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+  function escapeAttr(s){ return escapeHtml(s).replaceAll("\\n"," "); }
+
+  ensureProjectSelected();
+  if(!cPanelW.value.trim()) cPanelW.value = "2,5";
+  if(!cDefaultH.value) cDefaultH.value = "160";
+
+  if(state.projects.length === 0){
+    const demo = {
+      id: uid(),
+      title: "Demo: Zaunbau Muster",
+      address: "—",
+      createdAt: nowISO(),
+      items: [{ id: uid(), name:"Anschlussleisten", qty:0, unit:"Stk", note:"manuell", done:false, createdAt: nowISO() }],
+      segments: [{ id: uid(), title:"A", length:10.0, corners:2, height:160 }]
+    };
+    state.projects.unshift(demo);
+    state.selectedProjectId = demo.id;
+  }
+
+  refreshAll();
+})();
+</script>
+</body>
+</html>
