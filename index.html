@@ -1,1495 +1,1022 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b0b08" />
-  <title>ZaunMaterial – Jaguar‑Spirit Deluxe</title>
-
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="ZaunMaterial">
-
-  <style>
-    :root{
-      --bg:#0b0b08;
-      --panel:#12110d;
-      --panel2:#17150f;
-      --ink:#f2eddc;
-      --muted:#bdb49a;
-      --gold:#d4b15f;
-      --gold2:#a07b2e;
-      --red:#ff4b4b;
-      --green:#3be28a;
-      --line:rgba(212,177,95,.22);
-      --shadow:0 14px 35px rgba(0,0,0,.45);
-      --radius:16px;
-      --radius2:12px;
-      --tap:52px;
-      --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
-      --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      background:
-        radial-gradient(1200px 800px at 20% -10%, rgba(212,177,95,.14), transparent 55%),
-        radial-gradient(900px 700px at 90% 0%, rgba(255,75,75,.12), transparent 52%),
-        radial-gradient(900px 700px at 80% 110%, rgba(59,226,138,.10), transparent 55%),
-        linear-gradient(180deg, #070705 0%, #0b0b08 40%, #070705 100%);
-      color:var(--ink);
-      font-family:var(--sans);
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      padding: env(safe-area-inset-top) 12px env(safe-area-inset-bottom) 12px;
-    }
-    header{
-      position:sticky; top:0;
-      padding-top: env(safe-area-inset-top);
-      background: linear-gradient(180deg, rgba(11,11,8,.92), rgba(11,11,8,.64), transparent);
-      z-index: 50;
-      backdrop-filter: blur(10px);
-    }
-    .topbar{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 6px 10px 6px;}
-    .brand{display:flex; align-items:center; gap:10px; min-width:0;}
-    .sigil{
-      width:40px; height:40px; border-radius:14px;
-      background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.10), transparent 45%),
-                  linear-gradient(135deg, rgba(212,177,95,.95), rgba(160,123,46,.95));
-      box-shadow:0 8px 18px rgba(0,0,0,.45);
-      position:relative; flex:0 0 auto;
-    }
-    .sigil:after{content:"🐆"; position:absolute; inset:0; display:grid; place-items:center; font-size:20px; filter:drop-shadow(0 6px 10px rgba(0,0,0,.35));}
-    .titlewrap{min-width:0}
-    h1{margin:0; font-size:16px; letter-spacing:.2px; line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-    .subtitle{font-size:11px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-    .chip{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:10px 12px; border:1px solid var(--line);
-      background:rgba(18,17,13,.75); border-radius:999px;
-      box-shadow:0 8px 18px rgba(0,0,0,.25);
-      color:var(--ink); font-size:12px; user-select:none;
-    }
-    .chip b{color:var(--gold)}
-    .tabs{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:0 6px 10px 6px;}
-    .tabbtn{
-      height:44px; border-radius:14px; border:1px solid var(--line);
-      background:rgba(18,17,13,.62); color:var(--ink);
-      font-weight:650; letter-spacing:.2px;
-      display:flex; align-items:center; justify-content:center; gap:8px;
-      box-shadow:0 10px 22px rgba(0,0,0,.30);
-      -webkit-tap-highlight-color:transparent;
-    }
-    .tabbtn.active{
-      background: radial-gradient(400px 250px at 30% 20%, rgba(212,177,95,.26), transparent 55%),
-                  linear-gradient(180deg, rgba(23,21,15,.92), rgba(18,17,13,.85));
-      border-color:rgba(212,177,95,.35);
-      box-shadow:0 12px 26px rgba(0,0,0,.45);
-    }
-    main{padding:10px 6px 24px 6px;}
-    .panel{
-      background: radial-gradient(900px 500px at 20% 0%, rgba(212,177,95,.10), transparent 55%),
-                  linear-gradient(180deg, rgba(23,21,15,.92), rgba(18,17,13,.92));
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      padding:14px;
-      margin-bottom:12px;
-    }
-    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
-    .row > *{flex:1}
-    .row.tight > *{flex:unset}
-    label{display:block; font-size:12px; color:var(--muted); margin:6px 0 6px;}
-    input,select,textarea{
-      width:100%; height:var(--tap);
-      padding:12px 12px;
-      border-radius:14px;
-      border:1px solid rgba(212,177,95,.20);
-      background:rgba(10,10,8,.55);
-      color:var(--ink);
-      outline:none;
-      font-size:16px;
-    }
-    textarea{height:auto; min-height:90px; padding:12px; border-radius:14px;}
-    input::placeholder, textarea::placeholder{color:rgba(189,180,154,.55)}
-    .btn{
-      height:var(--tap);
-      border-radius:14px;
-      border:1px solid rgba(212,177,95,.25);
-      background: radial-gradient(600px 250px at 20% 20%, rgba(212,177,95,.18), transparent 55%),
-                  linear-gradient(180deg, rgba(23,21,15,.92), rgba(18,17,13,.92));
-      color:var(--ink);
-      font-weight:750; letter-spacing:.2px;
-      padding:0 14px;
-      display:inline-flex; align-items:center; justify-content:center; gap:10px;
-      box-shadow:0 12px 26px rgba(0,0,0,.35);
-      -webkit-tap-highlight-color:transparent;
-      user-select:none;
-    }
-    .btn:active{transform:translateY(1px)}
-    .btn.primary{
-      border-color:rgba(212,177,95,.45);
-      background: radial-gradient(600px 250px at 20% 20%, rgba(212,177,95,.34), transparent 55%),
-                  linear-gradient(180deg, rgba(30,27,18,.94), rgba(18,17,13,.92));
-    }
-    .btn.danger{
-      border-color:rgba(255,75,75,.35);
-      background: radial-gradient(600px 250px at 20% 20%, rgba(255,75,75,.20), transparent 55%),
-                  linear-gradient(180deg, rgba(23,21,15,.92), rgba(18,17,13,.92));
-    }
-    .btn.ghost{background:rgba(18,17,13,.45); box-shadow:none;}
-    .btn.small{height:44px; border-radius:12px; font-size:13px; padding:0 12px;}
-    .btnbar{display:flex; gap:10px; flex-wrap:wrap;}
-    .btnbar .btn{flex:1}
-    .list{display:flex; flex-direction:column; gap:10px;}
-    .card{
-      border:1px solid rgba(212,177,95,.18);
-      border-radius:var(--radius2);
-      background:rgba(10,10,8,.35);
-      padding:12px;
-    }
-    .cardhead{display:flex; align-items:center; justify-content:space-between; gap:12px;}
-    .cardtitle{font-weight:800; letter-spacing:.2px; font-size:14px; margin:0; line-height:1.2;}
-    .meta{font-size:12px; color:var(--muted); margin-top:4px; line-height:1.25;}
-    .pill{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:8px 10px;
-      border-radius:999px;
-      border:1px solid rgba(212,177,95,.18);
-      background:rgba(18,17,13,.55);
-      color:var(--muted);
-      font-size:12px;
-      white-space:nowrap;
-    }
-    .pill.good{border-color:rgba(59,226,138,.25); color:rgba(59,226,138,.95)}
-    .pill.warn{border-color:rgba(255,75,75,.25); color:rgba(255,75,75,.95)}
-    .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-    .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
-    .sep{height:1px; background:rgba(212,177,95,.14); margin:12px 0;}
-    .hint{font-size:12px; color:var(--muted); line-height:1.35;}
-    .mono{font-family:var(--mono)}
-    details{border:1px solid rgba(212,177,95,.18); border-radius:14px; background:rgba(10,10,8,.35); padding:10px;}
-    summary{list-style:none; cursor:pointer; font-weight:800; display:flex; align-items:center; justify-content:space-between; gap:10px;}
-    summary::-webkit-details-marker{display:none}
-    .toast{
-      position:fixed; left:12px; right:12px; bottom:calc(env(safe-area-inset-bottom) + 12px);
-      background:rgba(18,17,13,.92);
-      border:1px solid rgba(212,177,95,.25);
-      border-radius:14px;
-      box-shadow:0 16px 40px rgba(0,0,0,.55);
-      padding:12px 14px;
-      display:none; z-index:999;
-    }
-    .toast.show{display:block}
-    .toast .t{font-weight:800}
-    .toast .d{color:var(--muted); font-size:12px; margin-top:2px; line-height:1.3}
-    .kpi{display:flex; gap:10px; flex-wrap:wrap;}
-    .kpi .pill{flex:1; justify-content:center}
-    .goldText{color:var(--gold)}
-    .footer{margin-top:10px; font-size:11px; color:rgba(189,180,154,.65); text-align:center;}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>Zaunteam Zaunplaner v1.4</title>
+<style>
+  :root{
+    --bg:#0b0b0c; --panel:#121214; --text:#f3f0e8; --muted:#b9b1a2;
+    --gold:#d7b56d; --line:#2a2520; --good:#1fbf75; --bad:#ff4d4d;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:radial-gradient(1200px 900px at 30% -10%, #2a2318 0%, rgba(0,0,0,0) 60%), var(--bg);
+    color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}
+  .wrap{max-width:980px;margin:0 auto;padding:14px 12px 80px;}
+  .top{display:flex;gap:10px;align-items:center;justify-content:space-between;}
+  .brand h1{margin:0;font-size:18px;letter-spacing:.3px;}
+  .sub{font-size:12px;color:var(--muted);}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;
+    background:rgba(255,255,255,.03);font-size:12px;color:var(--muted);}
+  .pill.good{border-color:rgba(31,191,117,.35);color:#dff7ea;}
+  .tabs{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .tabBtn{border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--text);padding:10px 12px;border-radius:14px;
+    font-weight:650;font-size:13px;cursor:pointer;}
+  .tabBtn.active{border-color:rgba(215,181,109,.65);box-shadow:0 0 0 2px rgba(215,181,109,.15) inset;}
+  .panel{background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));border:1px solid var(--line);
+    border-radius:18px;padding:12px;margin-top:12px;}
+  details{background:transparent;}
+  summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  summary::-webkit-details-marker{display:none;}
+  .sep{height:1px;background:linear-gradient(90deg, rgba(215,181,109,.0), rgba(215,181,109,.35), rgba(215,181,109,.0));margin:10px 0;}
+  label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px;}
+  input,select,textarea{width:100%;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--text);
+    border-radius:14px;padding:10px 12px;font-size:14px;outline:none;}
+  textarea{min-height:84px;resize:vertical;}
+  input:focus,select:focus,textarea:focus{border-color:rgba(215,181,109,.7);box-shadow:0 0 0 2px rgba(215,181,109,.12);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  @media(max-width:720px){.grid2,.grid3{grid-template-columns:1fr;}}
+  .row{display:flex;gap:10px;align-items:center;}
+  .tight{gap:8px;}
+  .btn{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);padding:10px 12px;border-radius:14px;font-weight:700;cursor:pointer;}
+  .btn.small{padding:8px 10px;border-radius:12px;font-size:13px;}
+  .btn.primary{border-color:rgba(215,181,109,.75);background:linear-gradient(180deg, rgba(215,181,109,.18), rgba(215,181,109,.08));}
+  .btn.good{border-color:rgba(31,191,117,.55);}
+  .btn.bad{border-color:rgba(255,77,77,.55);}
+  .btnbar{display:flex;gap:10px;flex-wrap:wrap;}
+  .hint{color:var(--muted);font-size:12px;line-height:1.35;}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+  @media(max-width:720px){.cards{grid-template-columns:1fr;}}
+  .card{background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:16px;padding:12px;cursor:pointer;}
+  .card:hover{border-color:rgba(215,181,109,.45);}
+  .cardTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .cardTitle b{font-size:14px;}
+  .meta{color:var(--muted);font-size:12px;margin-top:4px;}
+  .kpi{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .kpi .pill b{color:var(--gold);}
+  .stepper{display:flex;gap:8px;align-items:center;}
+  .stepper input{text-align:center;}
+  .photoGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  @media(max-width:720px){.photoGrid{grid-template-columns:1fr;}}
+  .ph{border:1px dashed rgba(215,181,109,.45);border-radius:16px;padding:10px;background:rgba(0,0,0,.25);}
+  .ph img{width:100%;border-radius:12px;display:block;}
+  .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(0,0,0,.7);
+    border:1px solid rgba(215,181,109,.4);color:var(--text);padding:10px 12px;border-radius:14px;max-width:92vw;z-index:9999;}
+  .gold{color:var(--gold);}
+</style>
 </head>
-
 <body>
-<header>
-  <div class="topbar">
+<div class="wrap">
+  <div class="top">
     <div class="brand">
-      <div class="sigil" aria-hidden="true"></div>
-      <div class="titlewrap">
-        <h1>ZaunMaterial</h1>
-        <div class="subtitle">Jaguar‑Spirit Deluxe • v1.3</div>
-      </div>
+      <h1>Zaunteam Zaunplaner <span class="gold">v1.4</span></h1>
+      <div class="sub">Projekte • Kundenübersicht (WhatsApp) • Chef/Team‑Dokumentation • Offline‑fähig</div>
     </div>
-    <div class="chip">
-      <span>Projekt:</span> <b id="chipProjectName">—</b>
-    </div>
+    <div class="pill" id="statusPill">bereit</div>
   </div>
-  <div class="tabs">
-    <button class="tabbtn active" data-tab="projects">📁 Projekte</button>
-    <button class="tabbtn" data-tab="materials">🧱 Material</button>
-    <button class="tabbtn" data-tab="calc">🧮 Abschnitte</button>
-    <button class="tabbtn" data-tab="export">📤 Export</button>
-  </div>
-</header>
 
-<main>
-  <section id="tab-projects">
-    <div class="panel">
-      <div class="row tight" style="gap:12px; align-items:flex-end;">
-        <div style="flex:2">
-          <label>Projektname</label>
-          <input id="pTitle" placeholder="z.B. Zaun Müller – 18m Doppelstab" autocomplete="off" />
+  <div class="panel">
+    <details open id="projDetails">
+      <summary>
+        <span>📁 Projekte</span>
+        <span class="pill" id="projCountPill">0</span>
+      </summary>
+      <div class="sep"></div>
+
+      <div class="grid3">
+        <div>
+          <label>Projektname (Kunde)</label>
+          <input id="pName" placeholder="z.B. Kunde Müller"/>
         </div>
-        <div style="flex:1">
-          <label>Geplantes Ausführungsdatum</label>
-          <input id="pPlanned" type="date" />
+        <div>
+          <label>Ausführung (Datum)</label>
+          <input id="pDate" type="date"/>
+        </div>
+        <div>
+          <label>Telefon</label>
+          <input id="pPhone" inputmode="tel" placeholder="+49 ..."/>
         </div>
       </div>
 
       <div class="grid2" style="margin-top:10px;">
         <div>
-          <label>Telefon (Kunde)</label>
-          <input id="pPhone" inputmode="tel" placeholder="+49 …" />
+          <label>Adresse Kunde</label>
+          <input id="pAddr" placeholder="Straße, PLZ Ort"/>
         </div>
         <div>
-          <label>Adresse (Kunde)</label>
-          <input id="pAddrCustomer" placeholder="Kundenanschrift" />
+          <label>Objektadresse (falls abweichend)</label>
+          <input id="pObj" placeholder="Straße, PLZ Ort"/>
         </div>
       </div>
 
-      <label>Objektadresse (falls abweichend)</label>
-      <input id="pAddrSite" placeholder="Bauobjekt / Montageadresse" />
-
       <div class="btnbar" style="margin-top:10px;">
-        <button class="btn primary" id="btnAddProject">➕ Projekt anlegen</button>
-        <button class="btn danger" id="btnDeleteProject">🗑️ Projekt löschen</button>
+        <button class="btn primary" id="btnAdd">➕ Projekt anlegen</button>
+        <button class="btn" id="btnDup">📄 Duplizieren</button>
+        <button class="btn bad" id="btnDel">🗑️ Löschen</button>
       </div>
 
       <div class="sep"></div>
-      <div class="hint">Tipp: iOS‑Diktat (🎤) geht in allen Feldern.</div>
-    </div>
 
-    <div class="panel">
-      <div class="row tight" style="align-items:flex-end;">
-        <div style="flex:2">
-          <label>Aktives Projekt (Dropdown)</label>
-          <select id="projectSelect"></select>
-        </div>
-        <div style="flex:1">
+      <div class="grid2">
+        <div>
           <label>Sortierung</label>
-          <select id="projectSort">
-            <option value="alpha">Name (A‑Z)</option>
-            <option value="planned">Ausführungsdatum</option>
+          <select id="sortSel">
+            <option value="name">Name (A‑Z)</option>
+            <option value="date">Ausführungsdatum</option>
             <option value="created">Erstellungsdatum</option>
           </select>
         </div>
+        <div>
+          <label>Projekt auswählen</label>
+          <select id="projSel"></select>
+        </div>
       </div>
 
+      <div class="cards" id="projCards"></div>
+      <div class="hint" style="margin-top:10px;">Karte antippen → öffnet Kunde. Alle Daten bleiben beim Update erhalten (Migration v1.1–v1.3).</div>
+    </details>
+  </div>
+
+  <div class="tabs">
+    <button class="tabBtn active" data-tab="kunde">👤 Kunde</button>
+    <button class="tabBtn" data-tab="chef">🛠️ Chef / Team</button>
+    <button class="tabBtn" data-tab="backup">💾 Backup</button>
+  </div>
+
+  <div class="panel tab" data-tab="kunde">
+    <details open id="kundeCard">
+      <summary>
+        <span id="kundeTitle">👤 Kunde</span>
+        <span class="pill" id="kundePill">leer</span>
+      </summary>
       <div class="sep"></div>
 
-      <details id="projectDropdown">
-        <summary>
-          <span>📂 Projekte aufklappen</span>
-          <span class="pill" id="projectCountPill">0</span>
-        </summary>
-        <div class="sep"></div>
-        <div class="row tight">
-          <div style="flex:2">
-            <label>Suche</label>
-            <input id="projectSearch" placeholder="Name/Telefon/Adresse…" />
+      <div class="grid2">
+        <div>
+          <label>Zaunlänge gesamt (m)</label>
+          <input id="kLen" inputmode="decimal" placeholder="z.B. 18"/>
+        </div>
+        <div>
+          <label>Höhe</label>
+          <select id="kHeight"></select>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:10px;">
+        <div>
+          <label>System</label>
+          <select id="kSystem">
+            <option>Doppelstab</option>
+            <option>Aluminium</option>
+            <option>Holz</option>
+            <option>WPC</option>
+          </select>
+        </div>
+        <div>
+          <label>Farbe</label>
+          <select id="kColor"></select>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:10px;">
+        <div>
+          <label>Holzart (nur bei Holz)</label>
+          <select id="kWood"></select>
+        </div>
+        <div>
+          <label>WPC‑Variante (nur bei WPC)</label>
+          <select id="kWpc"></select>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:10px;">
+        <div>
+          <label>Gelände</label>
+          <select id="kSlopeType">
+            <option value="flat">gerade</option>
+            <option value="slope">abschüssig</option>
+            <option value="hang">am Hang</option>
+            <option value="steep">steil</option>
+          </select>
+        </div>
+        <div>
+          <label>Neigung % (optional)</label>
+          <input id="kSlopePct" inputmode="decimal" placeholder="z.B. 12"/>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:10px;">
+        <div>
+          <label>Ecken (Anzahl)</label>
+          <div class="stepper">
+            <button class="btn small" id="kCornersMinus" type="button">−</button>
+            <input id="kCorners" inputmode="numeric" value="0"/>
+            <button class="btn small" id="kCornersPlus" type="button">+</button>
           </div>
         </div>
-        <div class="sep"></div>
-        <div class="list" id="projectList"></div>
-      </details>
-    </div>
-  </section>
-
-  <section id="tab-materials" style="display:none;">
-    <div class="panel">
-      <div class="row tight" style="align-items:flex-end;">
-        <div style="flex:2">
-          <label>Neues Material</label>
-          <input id="mName" placeholder="z.B. Pfosten 60x40 – 2300mm" />
-        </div>
-        <div style="flex:1">
-          <label>Menge</label>
-          <input id="mQty" inputmode="decimal" placeholder="0" />
-        </div>
-        <div style="flex:1">
-          <label>Einheit</label>
-          <select id="mUnit">
-            <option>Stk</option><option>m</option><option>Sack</option><option>Paket</option>
-            <option>Palette</option><option>Kg</option><option>L</option><option>m³</option>
-          </select>
+        <div>
+          <label>Beton</label>
+          <div class="row tight">
+            <select id="kConcreteMode" style="flex:1;">
+              <option value="sacks">Säcke</option>
+              <option value="m3">m³</option>
+            </select>
+            <input id="kConcreteVal" inputmode="decimal" placeholder="z.B. 18" style="flex:1;"/>
+          </div>
         </div>
       </div>
 
-      <label>Notiz (grob, optional)</label>
-      <textarea id="mNote" placeholder="Freitext / kurze Übersicht…"></textarea>
-<div style="flex:2.8">
-          <label>Notiz (optional)</label>
-          <input id="mNote" placeholder="z.B. Anthrazit RAL7016 / Doppelstab" />
-        </div>
+      <div style="margin-top:10px;">
+        <label>Notiz (optional)</label>
+        <textarea id="kNote" placeholder="z.B. Besonderheiten / Wünsche…"></textarea>
       </div>
 
-      <div class="btnbar" style="margin-top:10px;">
-        <button class="btn primary" id="btnAddItem">➕ Hinzufügen</button>
-        <button class="btn" id="btnPresetFence">🧱 Preset: Standard‑Zaunliste</button>
+      <div class="kpi" id="kundeKpi"></div>
+
+      <div class="sep"></div>
+      <div class="btnbar">
+        <button class="btn primary" id="btnKCalc">✅ Berechnen & übernehmen</button>
+        <button class="btn good" id="btnKWhats">📲 WhatsApp‑Text (Kunde)</button>
+        <button class="btn" id="btnKDown">⬇️ Download Kunde.txt</button>
       </div>
-      <div class="btnbar" style="margin-top:10px;">
-        <button class="btn" id="btnPresetGeneral">🧰 Preset: Allgemein</button>
-        <button class="btn danger" id="btnClearDone">🧹 Erledigte löschen</button>
+
+      <div class="hint" style="margin-top:10px;">WhatsApp‑Text ist sauber: Liste untereinander, keine leeren Felder.</div>
+    </details>
+  </div>
+
+  <div class="panel tab" data-tab="chef" style="display:none;">
+    <details open id="chefCard">
+      <summary>
+        <span id="chefTitle">🛠️ Chef / Team</span>
+        <span class="pill" id="chefPill">leer</span>
+      </summary>
+      <div class="sep"></div>
+
+      <div class="grid3">
+        <div><label>Bagger</label><select id="cBagger"><option value="no">nein</option><option value="yes">ja</option></select></div>
+        <div><label>Ramme</label><select id="cRamme"><option value="no">nein</option><option value="yes">ja</option></select></div>
+        <div><label>Hänger</label><select id="cHaenger"><option value="no">nein</option><option value="yes">ja</option></select></div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <label>Interne Notiz / Baustellenhinweise</label>
+        <textarea id="cNote" placeholder="Zugang, Parken, Fundament, Lieferhinweise…"></textarea>
       </div>
 
       <div class="sep"></div>
-      <div class="hint">
-        Material kann „ALL“ (allgemein) oder A–F zugeordnet werden. Filter unten per Dropdown.
-      </div>
-    </div>
 
-    <div class="panel">
-      <div class="row tight">
-        <div style="flex:2">
-          <label>Material‑Suche</label>
-          <input id="materialSearch" placeholder="Name/Notiz…" />
-        </div>
-        <div style="flex:1">
-          <label>Filter</label>
-          <select id="materialFilter">
-            <option value="all">Alle</option>
-            <option value="open">Offen</option>
-            <option value="done">Erledigt</option>
-          </select>
-        </div>
-        
-      </div>
-
-      <div class="sep"></div>
-      <div class="list" id="materialList"></div>
-    </div>
-  </section>
-
-  <section id="tab-calc" style="display:none;">
-    <div class="panel">
-      <div class="row tight" style="align-items:flex-end;">
-        <div style="flex:1.2">
-          <label>Mattenbreite (m)</label>
-          <input id="cPanelW" inputmode="decimal" placeholder="2,5" />
-        </div>
-        <div style="flex:1.3">
-          <label>Standard‑Höhe (cm)</label>
-          <select id="cDefaultH"></select>
-        </div>
-        <div style="flex:1.5">
-          <label>Neuer Abschnitt</label>
-          <button class="btn primary" id="btnAddSeg">➕ Abschnitt</button>
-        </div>
-      </div>
-      <div class="sep"></div>
-      <div class="hint">
-        Schnell‑Planung: Gesamtlänge + Höhe + Material + Gelände + Ecken + Beton + Geräte. Abschnitte A–F bleiben optional für Feinarbeit.
-      </div>
-    </div>
-
-    
-    <div class="panel">
-      <details open id="planDetails">
-        <summary>
-          <span>⚡ Schnell‑Planung (Kunde/Baustelle)</span>
-          <span class="pill" id="planPill">bereit</span>
-        </summary>
+      <details open>
+        <summary><span>🧾 Interne Materialliste (Team)</span><span class="pill" id="matPill">0</span></summary>
         <div class="sep"></div>
 
         <div class="grid2">
           <div>
-            <label>Gesamtlänge Zaun (m)</label>
-            <input id="planLength" inputmode="decimal" placeholder="z.B. 18" />
+            <label>Material</label>
+            <input id="mName" placeholder="z.B. Pfosten 60x40"/>
           </div>
           <div>
-            <label>Höhe</label>
-            <select id="planHeight"></select>
-          </div>
-        </div>
-
-        <div class="grid2" style="margin-top:10px;">
-          <div>
-            <label>Material / System</label>
-            <select id="planSystem">
-              <option value="Doppelstab">Doppelstab</option>
-              <option value="Aluminium">Aluminium</option>
-              <option value="Holz">Holz</option>
-              <option value="WPC">WPC</option>
-            </select>
-          </div>
-          <div>
-            <label>Gelände</label>
-            <select id="planSlopeType">
-              <option value="flat">gerade</option>
-              <option value="slope">abschüssig</option>
-              <option value="hang">am Hang</option>
-              <option value="steep">steil</option>
-            </select>
-          
-        <div class="grid2" style="margin-top:10px;">
-          <div>
-            <label>Farbe</label>
-            <select id="planColor">
-              <option value="Anthrazit (RAL 7016)">Anthrazit (RAL 7016)</option>
-              <option value="Schwarz (RAL 9005)">Schwarz (RAL 9005)</option>
-              <option value="Grau (RAL 7030/7035)">Grau (RAL 7030/7035)</option>
-              <option value="Grün">Grün</option>
-              <option value="Weiß">Weiß</option>
-              <option value="Verzinkt / Natur">Verzinkt / Natur</option>
-              <option value="Holz Natur">Holz Natur</option>
-              <option value="Holz Lasur">Holz Lasur</option>
-            </select>
-          </div>
-          <div>
-            <label>Holzart (nur bei Holz)</label>
-            <select id="planWoodType">
-              <option value="">—</option>
-              <option value="Lärche">Lärche</option>
-              <option value="Douglasie">Douglasie</option>
-              <option value="Kiefer">Kiefer</option>
-              <option value="Fichte">Fichte</option>
-              <option value="Eiche">Eiche</option>
-            </select>
-          </div>
-        </div>
-
-</div>
-        </div>
-
-        <div class="grid2" style="margin-top:10px;">
-          <div>
-            <label>Neigung % (optional)</label>
-            <input id="planSlopePct" inputmode="decimal" placeholder="z.B. 12" />
-          </div>
-          <div>
-            <label>Ecken (Anzahl)</label>
-            <div class="row tight" style="gap:8px;">
-              <button class="btn small" id="planCornersMinus" type="button">−</button>
-              <input id="planCorners" inputmode="numeric" value="0" style="text-align:center; flex:1;" />
-              <button class="btn small" id="planCornersPlus" type="button">+</button>
+            <label>Menge</label>
+            <div class="row tight">
+              <input id="mQty" inputmode="decimal" placeholder="z.B. 12" style="flex:1;"/>
+              <select id="mUnit" style="flex:1;">
+                <option>Stk</option><option>m</option><option>m²</option><option>Sack</option><option>m³</option><option>Paket</option>
+              </select>
             </div>
           </div>
         </div>
 
-        <div class="sep"></div>
-
-        <div class="grid2">
-          <div>
-            <label>Beton‑Modus</label>
-            <select id="planConcreteMode">
-              <option value="sacks">Säcke (Anzahl)</option>
-              <option value="m3">Fertigbeton (m³)</option>
-            </select>
-          </div>
-          <div>
-            <label id="planConcreteLabel">Säcke (Anzahl)</label>
-            <input id="planConcreteValue" inputmode="decimal" placeholder="z.B. 18" />
-          </div>
+        <div style="margin-top:10px;">
+          <label>Notiz (grob, optional)</label>
+          <textarea id="mNote" placeholder="Freitext / kurze Übersicht…"></textarea>
         </div>
 
-        <div class="sep"></div>
-
-        <div class="grid2">
-          <div>
-            <label>Bagger</label>
-            <select id="planBagger">
-              <option value="no">nein</option>
-              <option value="yes">ja</option>
-            </select>
-          </div>
-          <div>
-            <label>Ramme</label>
-            <select id="planRamme">
-              <option value="no">nein</option>
-              <option value="yes">ja</option>
-            </select>
-          </div>
-          <div>
-            <label>Hänger</label>
-            <select id="planHaenger">
-              <option value="no">nein</option>
-              <option value="yes">ja</option>
-            </select>
-          </div>
+        <div class="btnbar" style="margin-top:10px;">
+          <button class="btn primary" id="btnAddMat">➕ Hinzufügen</button>
+          <button class="btn" id="btnClearMat">🧽 Liste leeren</button>
         </div>
 
-        <div class="sep"></div>
-        <div class="btnbar">
-          <button class="btn primary" id="btnPlanApply">✅ Aus Schnell‑Planung übernehmen</button>
-          <button class="btn" id="btnPlanClear">🧽 Planung leeren</button>
-        </div>
-
-        <div class="hint" style="margin-top:10px;">
-          „Übernehmen“ schreibt eine grobe Materialliste ins Material‑Tab (Matten/Pfosten/Pfostenleisten/Eckpfosten/Beton + System).
-        </div>
+        <div id="matList" style="margin-top:10px;"></div>
       </details>
-    </div>
 
-<div class="panel">
+      <div class="sep"></div>
+
       <details open>
-        <summary>
-          <span>🧮 Abschnitte A–F (Dropdown‑Liste)</span>
-          <span class="pill" id="segCountPill">0</span>
-        </summary>
+        <summary><span>📸 Fotos (Baustelle / Aufnahme)</span><span class="pill" id="photoPill">0</span></summary>
         <div class="sep"></div>
-        <div class="list" id="segList"></div>
+        <div class="photoGrid" id="photoGrid"></div>
+        <div class="hint" style="margin-top:10px;">Fotos werden im Backup.json mitgesichert (komprimiert).</div>
       </details>
-    </div>
 
-    <div class="panel">
-      <div class="kpi" id="kpi"></div>
       <div class="sep"></div>
       <div class="btnbar">
-        <button class="btn primary" id="btnApplySums">✅ Summen in Material übernehmen</button>
-        <button class="btn" id="btnSegPresetDemo">✨ Demo‑Abschnitte</button>
+        <button class="btn good" id="btnCWhats">📲 WhatsApp‑Text (intern)</button>
+        <button class="btn" id="btnCDown">⬇️ Download Intern.txt</button>
       </div>
-      <div class="hint" style="margin-top:10px;">
-        Übernommen werden: Matten (Summe), Pfosten (Summe), Pfostenleisten (Summe). (Keine Eckpfosten/Ecken.)
-      </div>
-    </div>
-  </section>
+    </details>
+  </div>
 
-  <section id="tab-export" style="display:none;">
-    <div class="panel">
-      <label>Export‑Text (Vorschau)</label>
-      <textarea id="exportPreview" readonly></textarea>
-
-      <div class="btnbar" style="margin-top:10px;">
-        <button class="btn primary" id="btnShare">📲 Teilen (WhatsApp)</button>
-        <button class="btn" id="btnDownload">⬇️ Download (.txt)</button>
-      </div>
-
-      <div class="btnbar" style="margin-top:10px;">
-        <button class="btn ghost" id="btnCopy">📋 Kopieren</button>
-        <button class="btn danger" id="btnFactoryReset">☠️ Reset (alles löschen)</button>
-      </div>
-
+  <div class="panel tab" data-tab="backup" style="display:none;">
+    <details open>
+      <summary><span>💾 Backup / Export (firmensicher)</span><span class="pill">JSON • CSV • TXT</span></summary>
       <div class="sep"></div>
       <div class="hint">
-        WhatsApp kommt über das iOS‑Share‑Sheet. Offline: Daten bleiben auf dem iPhone (LocalStorage).
+        Empfehlung:
+        <br>• <b>Backup.json</b> (alles inkl. Fotos) → archivieren / importierbar
+        <br>• <b>Material.csv</b> (intern) → Excel/Software
+        <br>• <b>Kunde.txt</b> / <b>Intern.txt</b> → WhatsApp/Doku
       </div>
-    </div>
-
-    <div class="panel">
-      <div class="hint">
-        <b class="goldText">Update‑Hinweis (GitHub Pages):</b><br>
-        Wenn du eine neue Version hochlädst, Safari ggf. einmal neu laden / PWA neu öffnen.
+      <div class="sep"></div>
+      <div class="btnbar">
+        <button class="btn primary" id="btnBackup">⬇️ Download Backup.json (alles)</button>
+        <button class="btn" id="btnCSV">⬇️ Download Material.csv (intern)</button>
+        <button class="btn bad" id="btnReset">⚠️ Alle Daten löschen (lokal)</button>
       </div>
-      <div class="footer">ZaunMaterial • v1.3 • Jaguar‑Spirit Deluxe</div>
-    </div>
-  </section>
-</main>
-
-<div class="toast" id="toast">
-  <div class="t" id="toastT">OK</div>
-  <div class="d" id="toastD">—</div>
+    </details>
+  </div>
 </div>
+
+<div id="toast" class="toast" style="display:none;"></div>
 
 <script>
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "js_zaunmaterial_deluxe_v1_3";
-  const nowISO = () => new Date().toISOString();
-  const uid = () => Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+  const STORAGE_KEY = "zaunteam_zaunplaner_state";
+  const LEGACY_KEYS = ["js_zaunmaterial_deluxe_v1_1","js_zaunmaterial_deluxe_v1_2","js_zaunmaterial_deluxe_v1_3","js_zaunmaterial_deluxe_v1_0"];
+
   const DEFAULT_HEIGHTS = [60,80,100,120,140,160,180,200];
+  const PANEL_W = 2.50;
 
-  let state = loadState();
-
-  function loadState(){
-    const legacy = localStorage.getItem("js_zaunmaterial_deluxe_v1");
-    try{
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if(raw){
-        const s = JSON.parse(raw);
-        if(!Array.isArray(s.projects)) s.projects = [];
-
-        // Cleanup: entferne Werkzeug‑Einträge aus alten Kunden‑Listen
-        const banned = ["zinkspray","schnur","bodenhülsen","bodenhuelsen","markierungsspray","zink spray"];
-        s.projects.forEach(p=>{
-          p.items = (p.items||[]).filter(it=>{
-            const n = (it.name||"").toLowerCase();
-            return !banned.some(b=> n.includes(b));
-          });
-        });
-
-        if(!s.version) s.version = "1.1";
-        return s;
-      }
-      if(legacy){
-        const s = JSON.parse(legacy);
-        if(Array.isArray(s.projects)){
-          s.projects.forEach(p => {
-            p.phone = p.phone || "";
-            p.addressCustomer = p.addressCustomer || (p.address || "");
-            p.addressSite = p.addressSite || "";
-            p.plannedDate = p.plannedDate || "";
-            if(!p.plan) p.plan = { length:"", height:160, system:"Doppelstab", color:"Anthrazit (RAL 7016)", woodType:"", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" };
-            (p.items||[]).forEach(it => { if(!it.seg) it.seg = "ALL"; });
-            (p.segments||[]).forEach(seg => { delete seg.corners; });
-          });
-          s.version = "1.1";
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-          return s;
-        }
-      }
-    }catch(e){}
-    return { version:"1.1", selectedProjectId:null, projects:[] };
-  }
-
-  function saveState(){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    refreshAll();
-  }
-
-  function toast(t, d=""){
-    const el = document.getElementById("toast");
-    document.getElementById("toastT").textContent = t;
-    document.getElementById("toastD").textContent = d;
-    el.classList.add("show");
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => el.classList.remove("show"), 2100);
-  }
-
-  const cleanNum = (s) => String(s ?? "").trim().replace(",", ".");
-  const toNum = (s, fallback=0) => {
-    const n = Number(cleanNum(s));
-    return Number.isFinite(n) ? n : fallback;
-  };
-  const fmt = (n) => {
-    if(!Number.isFinite(n)) return "0";
-    if(Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n));
-    return n.toFixed(2);
-  };
-
-  function currentProject(){
-    const id = state.selectedProjectId;
-    if(!id) return null;
-    return state.projects.find(p => p.id === id) || null;
-  }
-  function ensureProjectSelected(){
-    if(state.selectedProjectId && currentProject()) return;
-    state.selectedProjectId = state.projects[0]?.id || null;
-  }
-
-  const tabBtns = [...document.querySelectorAll(".tabbtn")];
-  tabBtns.forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
-  function setTab(tab){
-    tabBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-    document.getElementById("tab-projects").style.display = (tab==="projects") ? "" : "none";
-    document.getElementById("tab-materials").style.display = (tab==="materials") ? "" : "none";
-    document.getElementById("tab-calc").style.display = (tab==="calc") ? "" : "none";
-    document.getElementById("tab-export").style.display = (tab==="export") ? "" : "none";
-    refreshAll();
-  }
+  const ZAUNTEAM_FARBEN = ["Anthrazit (RAL 7016)","Schwarz (RAL 9005)","Grau (RAL 7030/7035)","Grün","Weiß","Verzinkt / Natur","Holz Natur","Holz Lasur"];
+  const HOLZARTEN = ["—","Lärche","Douglasie","Kiefer","Fichte","Eiche"];
+  const WPC_VARIANTEN = ["—","glatt","geriffelt","co-extrudiert"];
 
   const el = (id) => document.getElementById(id);
+  const toastEl = el("toast");
+  function toast(a,b="") {
+    toastEl.style.display="block";
+    toastEl.textContent = b ? (a + " — " + b) : a;
+    setTimeout(()=> toastEl.style.display="none", 2200);
+  }
+  const fmt = (n) => {
+    const x = Number(n);
+    if(!Number.isFinite(x)) return "0";
+    return (Math.round(x*100)/100).toString().replace(".", ",");
+  };
+  const toNum = (v, d=0) => {
+    if(v==null) return d;
+    const s = String(v).trim().replace(",", ".");
+    const x = Number(s);
+    return Number.isFinite(x) ? x : d;
+  };
+  const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(3);
+  const nowISO = () => new Date().toISOString();
 
-  const chipProjectName = el("chipProjectName");
-  const pTitle = el("pTitle");
-  const pPlanned = el("pPlanned");
-  const pPhone = el("pPhone");
-  const pAddrCustomer = el("pAddrCustomer");
-  const pAddrSite = el("pAddrSite");
-  const btnAddProject = el("btnAddProject");
-  const btnDeleteProject = el("btnDeleteProject");
-  const projectSelect = el("projectSelect");
-  const projectSort = el("projectSort");
-  const projectSearch = el("projectSearch");
-  const projectList = el("projectList");
-  const projectDropdown = el("projectDropdown");
-  const projectCountPill = el("projectCountPill");
+  function escapeHtml(s) {
+    return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  }
 
-  btnAddProject.addEventListener("click", () => {
-    const title = pTitle.value.trim();
-    if(!title){ toast("Projektname fehlt", "Bitte einen Namen eingeben."); return; }
-    const proj = {
+  let state = { version:"1.4", selectedProjectId:null, projects:[] };
+
+  function blankProject(name) {
+    return {
       id: uid(),
-      title,
+      title: name || "Neues Projekt",
       createdAt: nowISO(),
-      plannedDate: (pPlanned.value || ""),
-      phone: (pPhone.value || "").trim(),
-      addressCustomer: (pAddrCustomer.value || "").trim(),
-      addressSite: (pAddrSite.value || "").trim(),
-      items: [],
-      segments: [],
-      plan: { length:"", height:160, system:"Doppelstab", color:"Anthrazit (RAL 7016)", woodType:"", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" }
+      plannedDate: "",
+      phone: "",
+      addr: "",
+      objAddr: "",
+      customer: {
+        length: "", height:160, system:"Doppelstab", color:"Anthrazit (RAL 7016)",
+        woodType:"", wpcType:"", slopeType:"flat", slopePct:"", corners:0,
+        concreteMode:"sacks", concreteValue:"", note:""
+      },
+      chef: { bagger:"no", ramme:"no", haenger:"no", note:"", materials:[], photos:[] },
+      status:"Entwurf"
     };
-    state.projects.unshift(proj);
-    state.selectedProjectId = proj.id;
-
-    pTitle.value = ""; pPlanned.value = ""; pPhone.value = ""; pAddrCustomer.value = ""; pAddrSite.value = "";
-    toast("Projekt angelegt", title);
-    saveState();
-  });
-
-  btnDeleteProject.addEventListener("click", () => {
-    const p = currentProject();
-    if(!p){ toast("Kein Projekt", "Erst ein Projekt wählen."); return; }
-    if(!confirm(`Projekt wirklich löschen?
-
-${p.title}
-
-(Alle Listen & Abschnitte werden entfernt.)`)) return;
-    state.projects = state.projects.filter(x => x.id !== p.id);
-    ensureProjectSelected();
-    toast("Projekt gelöscht", p.title);
-    saveState();
-  });
-
-  projectSelect.addEventListener("change", () => { state.selectedProjectId = projectSelect.value || null; saveState(); setTab("calc"); setTimeout(()=>{ try{ document.getElementById("planDetails").open = true; }catch(e){} }, 120); });
-  projectSort.addEventListener("change", refreshProjectsList);
-  projectSearch.addEventListener("input", refreshProjectsList);
-
-  function sortProjects(list){
-    const mode = projectSort.value || "alpha";
-    const copy = [...list];
-    if(mode === "alpha"){
-      copy.sort((a,b) => (a.title||"").localeCompare(b.title||"", "de", { sensitivity:"base" }));
-      return copy;
-    }
-    if(mode === "planned"){
-      copy.sort((a,b) => {
-        const ad = a.plannedDate || "9999-12-31";
-        const bd = b.plannedDate || "9999-12-31";
-        if(ad !== bd) return ad.localeCompare(bd);
-        return (a.title||"").localeCompare(b.title||"", "de", { sensitivity:"base" });
-      });
-      return copy;
-    }
-    copy.sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||""));
-    return copy;
   }
 
-  function refreshProjects(){
-    ensureProjectSelected();
-    const p = currentProject();
-    chipProjectName.textContent = p?.title || "—";
-
-    projectSelect.innerHTML = "";
-    const sorted = sortProjects(state.projects);
-    sorted.forEach(pr => {
-      const o = document.createElement("option");
-      o.value = pr.id;
-      o.textContent = pr.title;
-      projectSelect.appendChild(o);
-    });
-    if(state.selectedProjectId) projectSelect.value = state.selectedProjectId;
-
-    projectCountPill.textContent = String(state.projects.length);
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    updateStatusPill();
   }
 
-  function refreshProjectsList(){
-    projectList.innerHTML = "";
-    const q = (projectSearch.value || "").trim().toLowerCase();
-
-    const filtered = state.projects.filter(p => {
-      if(!q) return true;
-      return (
-        (p.title||"").toLowerCase().includes(q) ||
-        (p.phone||"").toLowerCase().includes(q) ||
-        (p.addressCustomer||"").toLowerCase().includes(q) ||
-        (p.addressSite||"").toLowerCase().includes(q)
-      );
-    });
-
-    const list = sortProjects(filtered);
-
-    if(!list.length){
-      projectList.innerHTML = `<div class="hint">Keine Projekte gefunden.</div>`;
-      return;
+  function migrateLegacy() {
+    const stable = localStorage.getItem(STORAGE_KEY);
+    if(stable) {
+      try {
+        const s = JSON.parse(stable);
+        if(s && Array.isArray(s.projects)) { state = {...state, ...s, version:"1.4"}; return; }
+      } catch(e){}
     }
+    for(const k of LEGACY_KEYS) {
+      const raw = localStorage.getItem(k);
+      if(!raw) continue;
+      try {
+        const s = JSON.parse(raw);
+        if(Array.isArray(s.projects) && s.projects.length) {
+          const converted = s.projects.map(p => {
+            const np = blankProject(p.title || p.name || "Projekt");
+            np.id = p.id || np.id;
+            np.createdAt = p.createdAt || np.createdAt;
+            np.plannedDate = p.plannedDate || "";
+            np.phone = p.phone || "";
+            np.addr = p.addr || "";
+            np.objAddr = p.objAddr || "";
+            if(p.plan) {
+              np.customer.length = p.plan.length || "";
+              np.customer.height = Number(p.plan.height) || 160;
+              np.customer.system = p.plan.system || "Doppelstab";
+              np.customer.color = p.plan.color || "Anthrazit (RAL 7016)";
+              np.customer.woodType = p.plan.woodType || "";
+              np.customer.slopeType = p.plan.slopeType || "flat";
+              np.customer.slopePct = p.plan.slopePct || "";
+              np.customer.corners = Number(p.plan.corners)||0;
+              np.customer.concreteMode = p.plan.concreteMode || "sacks";
+              np.customer.concreteValue = p.plan.concreteValue || "";
+            }
+            if(Array.isArray(p.items)) {
+              const banned = ["zinkspray","schnur","bodenhülsen","bodenhuelsen","markierungsspray","zink spray"];
+              np.chef.materials = p.items.filter(it => {
+                const n = String(it.name||"").toLowerCase();
+                return !banned.some(b=>n.includes(b));
+              }).map(it => ({
+                id: it.id || uid(),
+                name: it.name || "",
+                qty: toNum(it.qty, 0),
+                unit: it.unit || "Stk",
+                note: it.note || ""
+              }));
+            }
+            return np;
+          });
+          state.projects = converted;
+          state.selectedProjectId = (s.selectedProjectId && converted.some(p=>p.id===s.selectedProjectId)) ? s.selectedProjectId : (converted[0]?.id || null);
+          save();
+          toast("Daten übernommen", "aus älterer Version");
+          return;
+        }
+      } catch(e){}
+    }
+    const demo = blankProject("Demo – Kunde Beispiel");
+    demo.plannedDate = "2025-12-16";
+    state.projects = [demo];
+    state.selectedProjectId = demo.id;
+    save();
+  }
 
-    list.forEach(p => {
-      const isActive = (p.id === state.selectedProjectId);
-      const created = (p.createdAt||"").slice(0,10) || "—";
-      const planned = p.plannedDate || "—";
-      const addrC = p.addressCustomer || "—";
-      const addrS = p.addressSite || "—";
-      const phone = p.phone || "—";
+  function currentProject() {
+    return state.projects.find(p=>p.id===state.selectedProjectId) || null;
+  }
 
-      const card = document.createElement("div");
-      card.className = "card";
-      card.innerHTML = `
-        <div class="cardhead">
-          <div style="min-width:0">
-            <div class="cardtitle">${escapeHtml(p.title)} ${isActive ? '<span class="pill good">aktiv</span>' : ''}</div>
-            <div class="meta">
-              Tel: ${escapeHtml(phone)} • Erstellt: <span class="mono">${escapeHtml(created)}</span> • Ausführung: <span class="mono">${escapeHtml(planned)}</span>
-            </div>
-            <div class="meta">Kunde: ${escapeHtml(addrC)}</div>
-            <div class="meta">Objekt: ${escapeHtml(addrS)}</div>
-          </div>
-          <button class="btn small ${isActive ? 'ghost':'primary'}">${isActive ? '✅' : 'Wählen'}</button>
+  function updateStatusPill() {
+    const p = currentProject();
+    el("statusPill").textContent = p ? (`aktiv: ${p.title} • ${p.status}`) : "kein Projekt";
+  }
+
+  // Tabs
+  function setTab(name) {
+    document.querySelectorAll(".tabBtn").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
+    document.querySelectorAll(".panel.tab").forEach(p=>p.style.display = (p.dataset.tab===name) ? "" : "none");
+  }
+  document.querySelectorAll(".tabBtn").forEach(b=>b.addEventListener("click", ()=> setTab(b.dataset.tab)));
+
+  // Fill
+  function fillHeights() {
+    const s = el("kHeight");
+    s.innerHTML="";
+    DEFAULT_HEIGHTS.forEach(h => {
+      const o=document.createElement("option");
+      o.value=String(h);
+      o.textContent=`${h} cm`;
+      s.appendChild(o);
+    });
+  }
+  function fillSelect(sel, arr, defVal) {
+    sel.innerHTML="";
+    arr.forEach(v => {
+      const o=document.createElement("option");
+      o.value=v; o.textContent=v;
+      sel.appendChild(o);
+    });
+    if(defVal!=null) sel.value=defVal;
+  }
+
+  // Projects UI
+  const pName=el("pName"), pDate=el("pDate"), pPhone=el("pPhone"), pAddr=el("pAddr"), pObj=el("pObj");
+  const projSel=el("projSel"), sortSel=el("sortSel"), projCards=el("projCards"), projCountPill=el("projCountPill");
+
+  function refreshProjectSelectors() {
+    const list=[...state.projects];
+    if(sortSel.value==="name") list.sort((a,b)=>(a.title||"").localeCompare(b.title||"","de"));
+    if(sortSel.value==="date") list.sort((a,b)=>(a.plannedDate||"9999-12-31").localeCompare(b.plannedDate||"9999-12-31"));
+    if(sortSel.value==="created") list.sort((a,b)=>(a.createdAt||"").localeCompare(b.createdAt||""));
+    projSel.innerHTML="";
+    list.forEach(p=>{
+      const o=document.createElement("option");
+      o.value=p.id;
+      o.textContent=`${p.title}${p.plannedDate?(" • "+p.plannedDate):""}`;
+      projSel.appendChild(o);
+    });
+    projSel.value = state.selectedProjectId || "";
+    projCards.innerHTML="";
+    list.forEach(p=>{
+      const div=document.createElement("div");
+      div.className="card";
+      div.innerHTML = `
+        <div class="cardTitle">
+          <b>${escapeHtml(p.title)}</b>
+          <span class="pill ${p.status==="Freigegeben"?"good":""}">${escapeHtml(p.status||"Entwurf")}</span>
         </div>
+        <div class="meta">Erstellt: ${(p.createdAt||"").slice(0,10)||"—"} • Ausführung: ${p.plannedDate||"—"}</div>
+        <div class="meta">Tel: ${escapeHtml(p.phone||"—")} • Kunde: ${escapeHtml(p.addr||"—")}</div>
       `;
-      card.style.cursor = "pointer";
-      card.addEventListener("click", () => {
+      div.addEventListener("click", ()=>{
         state.selectedProjectId = p.id;
-        toast("Projekt aktiv", p.title);
-        saveState();
-        projectDropdown.open = false;
-        setTab("calc");
-        setTimeout(()=>{ try{ document.getElementById("planDetails").open = true; document.getElementById("planLength")?.focus(); }catch(e){} }, 120);
+        save(); refreshAll();
+        setTab("kunde");
+        setTimeout(()=>el("kLen").focus(), 120);
       });
-      projectList.appendChild(card);
+      projCards.appendChild(div);
     });
+    projCountPill.textContent = String(state.projects.length);
   }
 
-  const mName = el("mName");
-  const mQty = el("mQty");
-  const mUnit = el("mUnit");
-  const mNote = el("mNote");
-  const btnAddItem = el("btnAddItem");
-  const btnPresetFence = el("btnPresetFence");
-  const btnPresetGeneral = el("btnPresetGeneral");
-  const btnClearDone = el("btnClearDone");
-  const materialSearch = el("materialSearch");
-  const materialFilter = el("materialFilter");
-  const materialList = el("materialList");
-
-  btnAddItem.addEventListener("click", () => {
-    const p = currentProject();
-    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
-    const name = mName.value.trim();
-    if(!name){ toast("Material fehlt", "Bitte Name eingeben."); return; }
-    const qty = toNum(mQty.value, 0);
-    const unit = mUnit.value;
-    const note = mNote.value.trim();
-    p.items.unshift({ id: uid(), name, qty, unit, note, seg:"ALL", done:false, createdAt: nowISO() });
-    mName.value = ""; mQty.value = ""; mNote.value = "";
-    toast("Hinzugefügt", name);
-    saveState();
+  el("btnAdd").addEventListener("click", ()=>{
+    const name=(pName.value||"").trim() || "Neues Projekt";
+    const p = blankProject(name);
+    p.plannedDate = pDate.value || "";
+    p.phone = (pPhone.value||"").trim();
+    p.addr = (pAddr.value||"").trim();
+    p.objAddr = (pObj.value||"").trim();
+    state.projects.unshift(p);
+    state.selectedProjectId = p.id;
+    pName.value=""; pDate.value=""; pPhone.value=""; pAddr.value=""; pObj.value="";
+    save(); refreshAll();
+    toast("Projekt erstellt", p.title);
+    setTab("kunde");
   });
 
-  function insertAvoidDupItems(project, presetItems, t, d){
-    const existing = new Set((project.items||[]).map(x => (x.name||"").toLowerCase() + "|" + (x.seg||"ALL")));
-    let added = 0;
-    presetItems.forEach(it => {    const items = (p.items||[]).filter(it => {
-      const matchQ = !q || (it.name||"").toLowerCase().includes(q) || (it.note||"").toLowerCase().includes(q);
-      const matchF = (f==="all") || (f==="open" && !it.done) || (f==="done" && it.done);
-      return matchQ && matchF;
-    });
+  el("btnDup").addEventListener("click", ()=>{
+    const p=currentProject(); if(!p) return;
+    const copy = JSON.parse(JSON.stringify(p));
+    copy.id = uid();
+    copy.title = p.title + " (Kopie)";
+    copy.createdAt = nowISO();
+    state.projects.unshift(copy);
+    state.selectedProjectId = copy.id;
+    save(); refreshAll();
+    toast("Dupliziert", copy.title);
+  });
 
-    if(!items.length){ materialList.innerHTML = `<div class="hint">Keine Einträge.</div>`; return; }
+  el("btnDel").addEventListener("click", ()=>{
+    const p=currentProject(); if(!p) return;
+    if(!confirm(`Projekt wirklich löschen?\n\n${p.title}`)) return;
+    state.projects = state.projects.filter(x=>x.id!==p.id);
+    state.selectedProjectId = state.projects[0]?.id || null;
+    save(); refreshAll();
+    toast("Gelöscht");
+  });
 
-    items.forEach(it => {
-      const card = document.createElement("div");
-      card.className = "card";
-      const donePill = it.done ? `<span class="pill good">✅ erledigt</span>` : `<span class="pill warn">⬜️ offen</span>`;
-      card.innerHTML = `
-        <div class="cardhead">
-          <div style="min-width:0">
-            <div class="cardtitle">${escapeHtml(it.name)} ${donePill}</div>
-            <div class="meta">
-              Menge: <b class="goldText">${fmt(toNum(it.qty,0))}</b> ${escapeHtml(it.unit||"")}
-              ${it.note ? ` • ${escapeHtml(it.note)}` : ``}
-            </div>
-            
-          </div>
-          <div class="btnbar" style="flex:0 0 auto;">
-            <button class="btn small">${it.done ? "↩︎" : "✅"}</button>
-            <button class="btn small danger">🗑️</button>
-          </div>
-        </div>
-        <div class="sep"></div>
-        <div class="grid2">
-          <div>
-            <label>Menge</label>
-            <input inputmode="decimal" value="${escapeAttr(fmt(toNum(it.qty,0)))}" />
-          </div>
-          <div>
-            <label>Einheit</label>
-            <select>
-              ${["Stk","m","Sack","Paket","Palette","Kg","L","m³"].map(u => `<option ${u===(it.unit||"Stk")?"selected":""}>${u}</option>`).join("")}
-            </select>
-          </div>
-          </div>
-        <div style="margin-top:10px;">
-          <label>Notiz</label>
-          <input value="${escapeAttr(it.note||"")}" placeholder="optional" />
-        </div>
-      `;
+  sortSel.addEventListener("change", refreshProjectSelectors);
+  projSel.addEventListener("change", ()=>{
+    state.selectedProjectId = projSel.value || null;
+    save(); refreshAll();
+  });
 
-      const buttons = card.querySelectorAll("button");
-      const btnToggle = buttons[0];
-      const btnDel = buttons[1];
+  // Kunde
+  const kLen=el("kLen"), kHeight=el("kHeight"), kSystem=el("kSystem"), kColor=el("kColor"), kWood=el("kWood"), kWpc=el("kWpc");
+  const kSlopeType=el("kSlopeType"), kSlopePct=el("kSlopePct"), kCorners=el("kCorners"), kConcreteMode=el("kConcreteMode"), kConcreteVal=el("kConcreteVal"), kNote=el("kNote");
+  const kundeKpi=el("kundeKpi");
 
-      btnToggle.addEventListener("click", () => { it.done = !it.done; saveState(); });
-      btnDel.addEventListener("click", () => {
-        if(!confirm(`Eintrag löschen?
-
-${it.name}`)) return;
-        p.items = p.items.filter(x => x.id !== it.id);
-        saveState();
-      });
-
-      const qtyInp = card.querySelectorAll("input")[0];
-      const noteInp = card.querySelectorAll("input")[1];
-      const unitSel = card.querySelectorAll("select")[0];
-
-      [qtyInp, noteInp, unitSel].forEach(ctrl => {
-        ctrl.addEventListener("change", () => {
-          it.qty = toNum(qtyInp.value, 0);
-          it.unit = unitSel.value;
-          it.note = noteInp.value.trim();
-          saveState();
-        });
-      });
-
-      materialList.appendChild(card);
-    });
-  }
-
-  const cPanelW = el("cPanelW");
-  const cDefaultH = el("cDefaultH");
-  const btnAddSeg = el("btnAddSeg");
-  const segList = el("segList");
-  const segCountPill = el("segCountPill");
-  const kpi = el("kpi");
-  const btnApplySums = el("btnApplySums");
-  const btnSegPresetDemo = el("btnSegPresetDemo");
-
-  function fillHeights(){
-    cDefaultH.innerHTML = "";
-    DEFAULT_HEIGHTS.forEach(h => {
-      const o = document.createElement("option");
-      o.value = String(h);
-      o.textContent = `${h} cm`;
-      cDefaultH.appendChild(o);
-    });
-  }
-  
-fillHeights();
-
-  // -------- Schnell‑Planung --------
-  const planDetails = document.getElementById("planDetails");
-  const planPill = document.getElementById("planPill");
-  const planLength = document.getElementById("planLength");
-  const planHeight = document.getElementById("planHeight");
-  const planSystem = document.getElementById("planSystem");
-  const planColor = document.getElementById("planColor");
-  const planWoodType = document.getElementById("planWoodType");
-  const planSlopeType = document.getElementById("planSlopeType");
-  const planSlopePct = document.getElementById("planSlopePct");
-  const planCorners = document.getElementById("planCorners");
-  const planCornersMinus = document.getElementById("planCornersMinus");
-  const planCornersPlus = document.getElementById("planCornersPlus");
-  const planConcreteMode = document.getElementById("planConcreteMode");
-  const planConcreteLabel = document.getElementById("planConcreteLabel");
-  const planConcreteValue = document.getElementById("planConcreteValue");
-  const planBagger = document.getElementById("planBagger");
-  const planRamme = document.getElementById("planRamme");
-  const planHaenger = document.getElementById("planHaenger");
-  const btnPlanApply = document.getElementById("btnPlanApply");
-  const btnPlanClear = document.getElementById("btnPlanClear");
-
-  function fillPlanHeights(){
-    if(!planHeight) return;
-    planHeight.innerHTML = "";
-    DEFAULT_HEIGHTS.forEach(h => {
-      const o = document.createElement("option");
-      o.value = String(h);
-      o.textContent = `${h} cm`;
-      planHeight.appendChild(o);
-    });
-  }
-  fillPlanHeights();
-
-  function setConcreteLabel(){
-    if(!planConcreteMode || !planConcreteLabel || !planConcreteValue) return;
-    const m = planConcreteMode.value;
-    planConcreteLabel.textContent = (m === "m3") ? "Fertigbeton (m³)" : "Säcke (Anzahl)";
-    planConcreteValue.placeholder = (m === "m3") ? "z.B. 0,8" : "z.B. 18";
-  }
-  planConcreteMode?.addEventListener("change", () => { setConcreteLabel(); persistPlanFromUI(); });
-  setConcreteLabel();
-
-  function clampInt(n, lo, hi){
-    n = Math.trunc(Number(n));
-    if(!Number.isFinite(n)) n = 0;
+  function clampInt(v, lo=0, hi=99) {
+    const n=Math.trunc(Number(v));
+    if(!Number.isFinite(n)) return lo;
     return Math.max(lo, Math.min(hi, n));
   }
-  function cornersVal(){ return clampInt(planCorners?.value ?? 0, 0, 99); }
-  function setCorners(v){ if(planCorners) planCorners.value = String(clampInt(v, 0, 99)); }
+  function setCorners(v){ kCorners.value = String(clampInt(v)); }
+  el("kCornersMinus").addEventListener("click", ()=>{ setCorners(clampInt(kCorners.value)-1); persistCustomer(); });
+  el("kCornersPlus").addEventListener("click", ()=>{ setCorners(clampInt(kCorners.value)+1); persistCustomer(); });
+  kCorners.addEventListener("change", ()=>{ setCorners(kCorners.value); persistCustomer(); });
 
-  planCornersMinus?.addEventListener("click", () => { setCorners(cornersVal()-1); persistPlanFromUI(); });
-  planCornersPlus?.addEventListener("click", () => { setCorners(cornersVal()+1); persistPlanFromUI(); });
-  planCorners?.addEventListener("change", () => { setCorners(cornersVal()); persistPlanFromUI(); });
+  function updateConcretePlaceholder(){ kConcreteVal.placeholder = (kConcreteMode.value==="m3") ? "z.B. 0,8" : "z.B. 18"; }
+  kConcreteMode.addEventListener("change", ()=>{ updateConcretePlaceholder(); persistCustomer(); });
 
-  [planLength, planHeight, planSystem, planColor, planWoodType, planSlopeType, planSlopePct, planConcreteValue, planBagger, planRamme, planHaenger].forEach(x => {
-    x?.addEventListener("change", () => persistPlanFromUI());
-    x?.addEventListener("input", () => persistPlanFromUI());
+  function toggleMaterialDependent(){
+    const sys = kSystem.value;
+    kWood.disabled = (sys!=="Holz");
+    kWpc.disabled = (sys!=="WPC");
+  }
+  kSystem.addEventListener("change", ()=>{ toggleMaterialDependent(); persistCustomer(); });
+
+  function persistCustomer() {
+    const p=currentProject(); if(!p) return;
+    const c=p.customer;
+    c.length=(kLen.value||"").trim();
+    c.height=Number(kHeight.value)||160;
+    c.system=kSystem.value;
+    c.color=kColor.value;
+    c.woodType=(kWood.value==="—")?"":kWood.value;
+    c.wpcType=(kWpc.value==="—")?"":kWpc.value;
+    c.slopeType=kSlopeType.value;
+    c.slopePct=(kSlopePct.value||"").trim();
+    c.corners=clampInt(kCorners.value);
+    c.concreteMode=kConcreteMode.value;
+    c.concreteValue=(kConcreteVal.value||"").trim();
+    c.note=(kNote.value||"").trim();
+    save();
+    refreshKpi();
+  }
+
+  [kLen,kHeight,kSystem,kColor,kWood,kWpc,kSlopeType,kSlopePct,kConcreteVal,kNote].forEach(x=>{
+    x.addEventListener("input", persistCustomer);
+    x.addEventListener("change", persistCustomer);
   });
 
-  function ensurePlan(p){
-    if(!p.plan){
-      p.plan = { length:"", height:160, system:"Doppelstab", color:"Anthrazit (RAL 7016)", woodType:"", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" };
-    }
+  function computeTotals(c){
+    const lengthM=Math.max(0, toNum(c.length,0));
+    const panels=lengthM ? Math.ceil(lengthM/PANEL_W) : 0;
+    const posts=panels ? (panels+1) : 0;
+    const corners=clampInt(c.corners||0);
+    const cornerPosts=corners;
+    const postStrips=posts ? (posts+corners) : 0;
+    return {lengthM, panels, posts, cornerPosts, postStrips};
+  }
+  function sysLabel(c){
+    const h=Number(c.height)||160;
+    const base = (c.system==="Doppelstab")?"Doppelstab‑Matten":(c.system==="Aluminium")?"Alu‑Elemente":(c.system==="Holz")?"Holz‑Elemente":(c.system==="WPC")?"WPC‑Elemente":"Zaun‑Elemente";
+    return `${base} 2,50m • ${h} cm`;
   }
 
-  function persistPlanFromUI(){
-    const p = currentProject();
-    if(!p) return;
-    ensurePlan(p);
-    p.plan.length = (planLength?.value ?? "").trim();
-    p.plan.height = Number(planHeight?.value) || 160;
-    p.plan.system = planSystem?.value || "Doppelstab";
-    p.plan.color = planColor?.value || "Anthrazit (RAL 7016)";
-    p.plan.woodType = planWoodType?.value || "";
-    p.plan.slopeType = planSlopeType?.value || "flat";
-    p.plan.slopePct = (planSlopePct?.value ?? "").trim();
-    p.plan.corners = cornersVal();
-    p.plan.concreteMode = planConcreteMode?.value || "sacks";
-    p.plan.concreteValue = (planConcreteValue?.value ?? "").trim();
-    p.plan.bagger = planBagger?.value || "no";
-    p.plan.ramme = planRamme?.value || "no";
-    p.plan.haenger = planHaenger?.value || "no";
-
-    if(planPill){
-      const ok = !!p.plan.length;
-      planPill.textContent = ok ? "gesetzt" : "bereit";
-      planPill.className = "pill " + (ok ? "good" : "");
-    }
-    saveState();
+  function refreshKpi(){
+    const p=currentProject(); if(!p) return;
+    const c=p.customer;
+    const t=computeTotals(c);
+    const ok=!!(c.length||"").trim();
+    const pill=el("kundePill");
+    pill.textContent = ok ? "gesetzt" : "leer";
+    pill.className = "pill " + (ok ? "good" : "");
+    el("kundeTitle").textContent = `👤 Kunde: ${p.title}`;
+    kundeKpi.innerHTML="";
+    if(!ok) return;
+    const add = (txt)=>{ const sp=document.createElement("span"); sp.className="pill"; sp.innerHTML=txt; kundeKpi.appendChild(sp); };
+    add(`Matten/Elemente: <b>${t.panels}</b>`);
+    add(`Pfosten: <b>${t.posts}</b>`);
+    if(t.cornerPosts) add(`Eckpfosten: <b>${t.cornerPosts}</b>`);
+    add(`Pfostenleisten: <b>${t.postStrips}</b>`);
   }
 
-  function loadPlanToUI(){
-    const p = currentProject();
-    if(!p) return;
-    ensurePlan(p);
-    if(planLength) planLength.value = p.plan.length || "";
-    if(planHeight) planHeight.value = String(p.plan.height || 160);
-    if(planSystem) planSystem.value = p.plan.system || "Doppelstab";
-    if(planColor) planColor.value = p.plan.color || "Anthrazit (RAL 7016)";
-    if(planWoodType) planWoodType.value = p.plan.woodType || "";
-    if(planSlopeType) planSlopeType.value = p.plan.slopeType || "flat";
-    if(planSlopePct) planSlopePct.value = p.plan.slopePct || "";
-    setCorners(p.plan.corners || 0);
-    if(planConcreteMode) planConcreteMode.value = p.plan.concreteMode || "sacks";
-    setConcreteLabel();
-    if(planConcreteValue) planConcreteValue.value = p.plan.concreteValue || "";
-    if(planBagger) planBagger.value = p.plan.bagger || "no";
-    if(planRamme) planRamme.value = p.plan.ramme || "no";
-    if(planHaenger) planHaenger.value = p.plan.haenger || "no";
-
-    if(planPill){
-      const ok = !!(p.plan.length || "").trim();
-      planPill.textContent = ok ? "gesetzt" : "bereit";
-      planPill.className = "pill " + (ok ? "good" : "");
-    }
+  function upsertMat(list, name, qty, unit, note){
+    const key=String(name||"").toLowerCase();
+    const it=list.find(x=>String(x.name||"").toLowerCase()===key);
+    if(it){ it.qty=Number(qty)||0; it.unit=unit||"Stk"; if(note) it.note=note; }
+    else list.unshift({id:uid(), name, qty:Number(qty)||0, unit:unit||"Stk", note:note||""});
   }
 
-  btnPlanClear?.addEventListener("click", () => {
-    const p = currentProject();
-    if(!p) return;
-    p.plan = { length:"", height:160, system:"Doppelstab", color:"Anthrazit (RAL 7016)", woodType:"", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" };
-    loadPlanToUI();
-    saveState();
-    toast("Planung geleert", "");
+  el("btnKCalc").addEventListener("click", ()=>{
+    const p=currentProject(); if(!p) return;
+    const c=p.customer;
+    const t=computeTotals(c);
+    if(!t.lengthM) return toast("Länge fehlt","Bitte Zaunlänge eingeben");
+    const mats=p.chef.materials;
+    upsertMat(mats, "Zaun‑Übersicht", 1, "Stk", `${fmt(t.lengthM)} m • ${c.height} cm • ${c.system} • ${c.color}${(c.system==="Holz"&&c.woodType)?(" • "+c.woodType):""}${(c.system==="WPC"&&c.wpcType)?(" • "+c.wpcType):""}`);
+    upsertMat(mats, sysLabel(c), t.panels, "Stk", "gesamt");
+    upsertMat(mats, "Pfosten", t.posts, "Stk", "gesamt");
+    if(t.cornerPosts) upsertMat(mats, "Eckpfosten", t.cornerPosts, "Stk", "gesamt");
+    upsertMat(mats, "Pfostenleisten", t.postStrips, "Stk", "gesamt");
+    const cv=(c.concreteValue||"").trim();
+    if(cv){
+      const unit=(c.concreteMode==="m3")?"m³":"Sack";
+      upsertMat(mats, "Beton", toNum(cv,0), unit, "Kunde");
+    }
+    save();
+    refreshChefUI();
+    toast("Übernommen","→ Chef‑Materialliste");
+    setTab("chef");
   });
 
-  function systemMatName(system, height){
-    const h = Number(height) || 160;
-    if(system === "Doppelstab") return `Doppelstab‑Matten 2,50m • ${h} cm`;
-    if(system === "Aluminium") return `Alu‑Elemente 2,50m • ${h} cm`;
-    if(system === "Holz") return `Holz‑Elemente 2,50m • ${h} cm`;
-    if(system === "WPC") return `WPC‑Elemente 2,50m • ${h} cm`;
-    return `Zaun‑Elemente 2,50m • ${h} cm`;
-  }
-
-  btnPlanApply?.addEventListener("click", () => {
-    const p = currentProject();
-    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
-    ensurePlan(p);
-
-    const lengthM = Math.max(0, toNum(p.plan.length, 0));
-    if(!lengthM){ toast("Länge fehlt", "Bitte Gesamtlänge eingeben."); return; }
-
-    const panelW = defaultPanelW();
-    const panels = Math.ceil(lengthM / Math.max(0.1, panelW));
-    const posts = panels + 1;
-    const corners = clampInt(p.plan.corners || 0, 0, 99);
-    const cornerPosts = corners;
-    const strips = posts + corners; // Eckpfosten brauchen 2 Leisten -> +1 extra pro Ecke
-
-    upsertItem(p, systemMatName(p.plan.system || "Doppelstab", p.plan.height), panels, "Stk", "Schnell‑Planung");
-    upsertItem(p, "Pfosten (Planung)", posts, "Stk", "1 mehr als Matten");
-    upsertItem(p, "Pfostenleisten (Planung)", strips, "Stk", "1 pro Pfosten, Eckpfosten +1");
-    if(cornerPosts > 0){
-      upsertItem(p, "Eckpfosten (Planung)", cornerPosts, "Stk", "1 pro Ecke");
-    }
-
-    const cmode = p.plan.concreteMode || "sacks";
-    const cval = (p.plan.concreteValue || "").trim();
-    if(cval){
-      if(cmode === "m3"){
-        upsertItem(p, "Beton (Fertigbeton)", toNum(cval, 0), "m³", "Schnell‑Planung");
-      }else{
-        upsertItem(p, "Beton (Säcke)", toNum(cval, 0), "Sack", "Schnell‑Planung");
-      }
-    }
-
-    const slopeTypeTxt = ({flat:"gerade", slope:"abschüssig", hang:"am Hang", steep:"steil"})[p.plan.slopeType] || "gerade";
-    const slopePctTxt = (p.plan.slopePct||"").trim() ? ` (${(p.plan.slopePct||"").trim()}%)` : "";const eq = [];
-    if((p.plan.bagger||"no")==="yes") eq.push("Bagger");
-    if((p.plan.ramme||"no")==="yes") eq.push("Ramme");
-    if((p.plan.haenger||"no")==="yes") eq.push("Hänger");
-    if(eq.length){}
-
-    toast("Übernommen", "Planung → Materialliste");
-    saveState();
-    setTab("materials");
-  });
-
-  function defaultPanelW(){
-
-    const v = cPanelW.value.trim();
-    if(!v) return 2.5;
-    return Math.max(0.1, toNum(v, 2.5));
-  }
-
-  function nextSegmentName(p){
-    const existing = new Set((p.segments||[]).map(s => (s.title||"").toUpperCase()));
-    const letters = "ABCDEF".split("");
-    for(const L of letters){ if(!existing.has(L)) return L; }
-    let n = 2;
-    while(existing.has("A"+n)) n++;
-    return "A"+n;
-  }
-
-  function calcForSegment(seg, panelW){
-    const length = Math.max(0, toNum(seg.length, 0));
-    const panels = Math.ceil(length / Math.max(0.1, panelW));
-    const posts = panels + 1;
-    const strips = posts;
-    return { panels, posts, strips };
-  }
-
-  function calcSums(segments, panelW){
-    let totalPanels=0, totalPosts=0, totalStrips=0;
-    for(const s of segments){
-      const r = calcForSegment(s, panelW);
-      totalPanels += r.panels;
-      totalPosts += r.posts;
-      totalStrips += r.strips;
-    }
-    return { panels: totalPanels, posts: totalPosts, strips: totalStrips };
-  }
-
-  btnAddSeg.addEventListener("click", () => {
-    const p = currentProject();
-    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
-    const height = Number(cDefaultH.value) || 160;
-    const seg = { id: uid(), title: nextSegmentName(p), length: 10, height };
-    p.segments.push(seg);
-    toast("Abschnitt hinzugefügt", `Abschnitt ${seg.title}`);
-    saveState();
-    setTab("calc");
-  });
-
-  btnSegPresetDemo.addEventListener("click", () => {
-    const p = currentProject();
-    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
-    if(p.segments.length && !confirm("Demo‑Abschnitte hinzufügen? (Bestehende bleiben erhalten)")) return;
-    const h = Number(cDefaultH.value)||160;
-    const demo = [
-      { id: uid(), title: "A", length: 10.0, height: h },
-      { id: uid(), title: "B", length: 4.2, height: h }
-    ];
-    const titles = new Set((p.segments||[]).map(s => (s.title||"").toUpperCase()));
-    demo.forEach(s => {
-      const t = (s.title||"").toUpperCase();
-      if(titles.has(t)) s.title = t + "2";
-      p.segments.push(s);
-      titles.add((s.title||"").toUpperCase());
-    });
-    toast("Demo hinzugefügt", `${demo.length} Abschnitte`);
-    saveState();
-  });
-
-  cPanelW.addEventListener("change", () => { if(!cPanelW.value.trim()) cPanelW.value = "2,5"; refreshCalc(); });
-  cDefaultH.addEventListener("change", refreshCalc);
-
-  function refreshCalc(){
-    const p = currentProject();
-    segList.innerHTML = "";
-    kpi.innerHTML = "";
-    if(!p){ segList.innerHTML = `<div class="hint">Kein Projekt aktiv.</div>`; return; }
-    try{ loadPlanToUI(); }catch(e){}
-
-    const segs = (p.segments||[]);
-    segCountPill.textContent = String(segs.length);
-
-    if(!segs.length){
-      segList.innerHTML = `<div class="hint">Noch keine Abschnitte. Tippe „Abschnitt“ um A–F anzulegen.</div>`;
-    }else{
-      const sorted = [...segs].sort((a,b) => (a.title||"").localeCompare(b.title||"", "de", {numeric:true}));
-      const w = defaultPanelW();
-
-      sorted.forEach(seg => {
-        const r = calcForSegment(seg, w);
-
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <details>
-            <summary>
-              <span>Abschnitt <span class="goldText">${escapeHtml(seg.title||"—")}</span> • ${fmt(toNum(seg.length,0))} m</span>
-              <span class="pill">Matten <b class="goldText mono">${r.panels}</b> • Pfosten <b class="goldText mono">${r.posts}</b></span>
-            </summary>
-            <div class="sep"></div>
-            <div class="grid2">
-              <div>
-                <label>Name</label>
-                <input value="${escapeAttr(seg.title||"")}" placeholder="A–F" />
-              </div>
-              <div>
-                <label>Länge (m)</label>
-                <input inputmode="decimal" value="${escapeAttr(fmt(toNum(seg.length,0)))}" />
-              </div>
-              <div>
-                <label>Höhe</label>
-                <select>
-                  ${DEFAULT_HEIGHTS.map(h => `<option value="${h}" ${Number(seg.height||160)===h?"selected":""}>${h} cm</option>`).join("")}
-                </select>
-              </div>
-            </div>
-            <div class="sep"></div>
-            <div class="kpi">
-              <span class="pill">Matten: <b class="goldText mono">${r.panels}</b></span>
-              <span class="pill">Pfosten: <b class="goldText mono">${r.posts}</b></span>
-              <span class="pill">Pfostenleisten: <b class="goldText mono">${r.strips}</b></span>
-            </div>
-            <div class="sep"></div>
-            <div class="btnbar">
-              <button class="btn small danger" data-del>🗑️ Abschnitt löschen</button>
-              <button class="btn small" data-addmat>➕ Material für diesen Abschnitt</button>
-            </div>
-          </details>
-        `;
-
-        const nameInp = card.querySelectorAll("input")[0];
-        const lenInp = card.querySelectorAll("input")[1];
-        const hSel = card.querySelector("select");
-
-        [nameInp, lenInp, hSel].forEach(ctrl => {
-          ctrl.addEventListener("change", () => {
-            seg.title = (nameInp.value.trim() || "A").toUpperCase();
-            seg.length = toNum(lenInp.value, 0);
-            seg.height = Number(hSel.value) || 160;
-            saveState();
-          });
-        });
-
-        card.querySelector("[data-del]").addEventListener("click", () => {
-          if(!confirm(`Abschnitt löschen?
-
-${seg.title||"—"}`)) return;
-          p.segments = p.segments.filter(x => x.id !== seg.id);
-          saveState();
-        });
-
-        card.querySelector("[data-addmat]").addEventListener("click", () => {
-          setTab("materials");
-          mSeg.value = segLabel(seg.title||"ALL");
-          /*segFilterRemoved*/.value = segLabel(seg.title||"ALL");
-          toast("Material", `Abschnitt ${segLabel(seg.title||"")}`);
-        });
-
-        segList.appendChild(card);
-      });
-    }
-
-    const sums = calcSums(p.segments||[], defaultPanelW());
-    kpi.innerHTML = `
-      <span class="pill">Matten (Summe): <b class="goldText mono">${sums.panels}</b></span>
-      <span class="pill">Pfosten (Summe): <b class="goldText mono">${sums.posts}</b></span>
-      <span class="pill">Pfostenleisten (Summe): <b class="goldText mono">${sums.strips}</b></span>
-    `;
-  }
-
-  function upsertItem(project, name, qty, unit, note){
-    const key = (name||"").toLowerCase();
-    const it = (project.items||[]).find(x => ((x.name||"").toLowerCase()) === key);
-    if(it){
-      it.qty = Number(qty) || 0;
-      it.unit = unit;
-      if(note) it.note = note;
-    }else{
-      project.items.unshift({ id: uid(), name, qty: Number(qty)||0, unit, note: note||"", seg:"ALL", done:false, createdAt: nowISO() });
-    }
-  }
-
-  btnApplySums.addEventListener("click", () => {
-    const p = currentProject();
-    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
-    if(!p.segments.length){ toast("Keine Abschnitte", "Erst Abschnitte anlegen."); return; }
-    const sums = calcSums(p.segments, defaultPanelW());
-
-    upsertItem(p, "Matten 2,50m (Summe)", sums.panels, "Stk", "aus Abschnitten");
-    upsertItem(p, "Pfosten (Summe)", sums.posts, "Stk", "aus Abschnitten");
-    upsertItem(p, "Pfostenleisten (Summe)", sums.strips, "Stk", "1 pro Pfosten");
-
-    toast("Übernommen", "Summen → Materialliste");
-    saveState();
-    setTab("materials");
-  });
-
-  const exportPreview = el("exportPreview");
-  const btnShare = el("btnShare");
-  const btnDownload = el("btnDownload");
-  const btnCopy = el("btnCopy");
-  const btnFactoryReset = el("btnFactoryReset");
-
-  function buildExportText(p){
-    const lines = [];
-    lines.push(`Projekt: ${p.title}`);
-    lines.push(`Ausführung: ${p.plannedDate || "—"}`);
-    lines.push(`Telefon: ${p.phone || "—"}`);
-    lines.push(`Kundenadresse: ${p.addressCustomer || "—"}`);
-    lines.push(`Objektadresse: ${p.addressSite || "—"}`);
-    lines.push(`Erstellt: ${(p.createdAt||"").slice(0,10) || "—"}`);
-    if(p.plan){
-      const slopeTxt = ({flat:"gerade", slope:"abschüssig", hang:"am Hang", steep:"steil"})[p.plan.slopeType] || "gerade";
-      const pct = (p.plan.slopePct||"").trim();
-      lines.push(`Planung: Länge ${p.plan.length||"—"} m • Höhe ${(p.plan.height||"—")} cm • System ${p.plan.system||"—"} • Farbe ${p.plan.color||"—"}${(p.plan.system==="Holz" && p.plan.woodType)?(" • Holzart "+p.plan.woodType):""}`);
-      lines.push(`Gelände: ${slopeTxt}${pct?` (${pct}%)`:``} • Ecken: ${p.plan.corners ?? 0}`);
-      const eq = [];
-      if((p.plan.bagger||"no")==="yes") eq.push("Bagger");
-      if((p.plan.ramme||"no")==="yes") eq.push("Ramme");
-      if((p.plan.haenger||"no")==="yes") eq.push("Hänger");
-      if(eq.length) lines.push(`Geräte: ${eq.join(", ")}`);
-      const cv = (p.plan.concreteValue||"").trim();
-      if(cv) lines.push(`Beton: ${p.plan.concreteMode==="m3" ? (cv+" m³") : (cv+" Sack")}`);
-    }
+  function customerWhatsText(p){
+    const c=p.customer;
+    const t=computeTotals(c);
+    const lines=[];
+    lines.push(`ZAUN – ${p.title}`);
+    if(p.plannedDate) lines.push(`Ausführung: ${p.plannedDate}`);
+    if(p.phone) lines.push(`Tel: ${p.phone}`);
+    if(p.addr) lines.push(`Adresse: ${p.addr}`);
+    if(p.objAddr) lines.push(`Objekt: ${p.objAddr}`);
     lines.push("");
-
-    if((p.segments||[]).length){
-      const sums = calcSums(p.segments, defaultPanelW());
-      lines.push("Abschnitte:");
-      const sorted = [...p.segments].sort((a,b) => (a.title||"").localeCompare(b.title||"", "de", {numeric:true}));
-      sorted.forEach(s => {
-        lines.push(`- ${s.title}: ${fmt(toNum(s.length,0))} m, Höhe ${s.height||160} cm`);
-      });
-      lines.push(`Summe: Matten ${sums.panels} • Pfosten ${sums.posts} • Pfostenleisten ${sums.strips}`);
-      lines.push("");
+    if(t.lengthM) lines.push(`• Länge: ${fmt(t.lengthM)} m`);
+    if(c.height) lines.push(`• Höhe: ${c.height} cm`);
+    if(c.system){
+      let sys=c.system;
+      if(c.system==="Holz" && c.woodType) sys += ` (${c.woodType})`;
+      if(c.system==="WPC" && c.wpcType) sys += ` (${c.wpcType})`;
+      lines.push(`• System: ${sys}`);
     }
-
-    lines.push("Materialliste:");
-    const items = (p.items||[]).slice();
-    if(!items.length){
-      lines.push("(leer)");
-      return lines.join("\n");
+    if(c.color) lines.push(`• Farbe: ${c.color}`);
+    const slopeTxt=({flat:"gerade",slope:"abschüssig",hang:"am Hang",steep:"steil"})[c.slopeType] || "gerade";
+    if(c.slopeType && c.slopeType!=="flat") lines.push(`• Gelände: ${slopeTxt}${(c.slopePct||"").trim()?(" ("+c.slopePct.trim()+"%)"):""}`);
+    if(clampInt(c.corners||0)>0) lines.push(`• Ecken: ${clampInt(c.corners||0)}`);
+    const cv=(c.concreteValue||"").trim();
+    if(cv) lines.push(`• Beton: ${cv} ${(c.concreteMode==="m3")?"m³":"Sack"}`);
+    lines.push("");
+    if(t.lengthM){
+      lines.push("Material (Übersicht):");
+      lines.push(`- Matten/Elemente: ${t.panels} Stk`);
+      lines.push(`- Pfosten: ${t.posts} Stk`);
+      if(t.cornerPosts) lines.push(`- Eckpfosten: ${t.cornerPosts} Stk`);
+      lines.push(`- Pfostenleisten: ${t.postStrips} Stk`);
+      if(cv) lines.push(`- Beton: ${cv} ${(c.concreteMode==="m3")?"m³":"Sack"}`);
     }
-
-    const groups = {};
-    items.forEach(it => {
-      const seg = segLabel(it.seg||"ALL");
-      if(!groups[seg]) groups[seg] = [];
-      groups[seg].push(it);
-    });
-
-    const segOrder = ["ALL","A","B","C","D","E","F"];
-    segOrder.filter(s => groups[s]?.length).forEach(seg => {
+    if(c.note){
       lines.push("");
-      lines.push(seg === "ALL" ? "ALLGEMEIN:" : `ABSCHNITT ${seg}:`);
-      groups[seg].forEach(it => {
-        const box = it.done ? "✅" : "⬜️";
-        const qty = fmt(toNum(it.qty,0));
-        const unit = it.unit || "Stk";
-        const note = it.note ? ` — ${it.note}` : "";
-        lines.push(`${box} ${it.name}: ${qty} ${unit}${note}`);
-      });
-    });
-
+      lines.push("Notiz:");
+      lines.push(c.note);
+    }
     return lines.join("\n");
   }
 
-  function refreshExport(){
-    const p = currentProject();
-    exportPreview.value = p ? buildExportText(p) : "";
+  async function shareText(text, title){
+    try{
+      if(navigator.share){ await navigator.share({title:title||"Zaunplaner", text}); return; }
+    }catch(e){}
+    try{ await navigator.clipboard.writeText(text); toast("Kopiert","in Zwischenablage"); }
+    catch(e){ prompt("Kopieren:", text); }
   }
 
-  btnShare.addEventListener("click", async () => {
-    const p = currentProject();
-    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
-    const text = buildExportText(p);
-    try{
-      if(navigator.share){
-        await navigator.share({ title: `Materialliste – ${p.title}`, text });
-        toast("Geteilt", "Share‑Sheet geöffnet");
-      }else{
-        await navigator.clipboard.writeText(text);
-        toast("Kopiert", "Teilen nicht verfügbar – Text in Zwischenablage.");
+  function downloadText(text, filename, mime="text/plain"){
+    const blob=new Blob([text], {type:mime+";charset=utf-8"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 800);
+  }
+  function fileSafe(name){ return String(name||"Datei.txt").replace(/[\\/:*?"<>|]+/g,"_").trim(); }
+
+  el("btnKWhats").addEventListener("click", async ()=>{ const p=currentProject(); if(!p) return; await shareText(customerWhatsText(p),"Kundenübersicht"); });
+  el("btnKDown").addEventListener("click", ()=>{ const p=currentProject(); if(!p) return; downloadText(customerWhatsText(p), fileSafe(`${p.title}_Kunde.txt`)); });
+
+  // Chef
+  const cBagger=el("cBagger"), cRamme=el("cRamme"), cHaenger=el("cHaenger"), cNote=el("cNote");
+  const matPill=el("matPill"), matList=el("matList"), mName=el("mName"), mQty=el("mQty"), mUnit=el("mUnit"), mNote=el("mNote");
+  const photoGrid=el("photoGrid"), photoPill=el("photoPill");
+
+  function persistChef(){
+    const p=currentProject(); if(!p) return;
+    p.chef.bagger=cBagger.value; p.chef.ramme=cRamme.value; p.chef.haenger=cHaenger.value;
+    p.chef.note=(cNote.value||"").trim();
+    save(); refreshChefPill();
+  }
+  [cBagger,cRamme,cHaenger,cNote].forEach(x=>{ x.addEventListener("change", persistChef); x.addEventListener("input", persistChef); });
+
+  function refreshChefPill(){
+    const p=currentProject(); if(!p) return;
+    const ok = (p.chef.materials||[]).length || (p.chef.note||"").trim() || (p.chef.photos||[]).length;
+    el("chefPill").textContent = ok ? "gesetzt" : "leer";
+    el("chefPill").className = "pill " + (ok ? "good" : "");
+  }
+
+  function refreshChefUI(){
+    const p=currentProject();
+    el("chefTitle").textContent = p ? `🛠️ Chef/Team: ${p.title}` : "🛠️ Chef / Team";
+    if(!p) return;
+    cBagger.value=p.chef.bagger||"no";
+    cRamme.value=p.chef.ramme||"no";
+    cHaenger.value=p.chef.haenger||"no";
+    cNote.value=p.chef.note||"";
+    renderMaterials(); renderPhotos(); refreshChefPill();
+  }
+
+  el("btnAddMat").addEventListener("click", ()=>{
+    const p=currentProject(); if(!p) return;
+    const name=(mName.value||"").trim(); if(!name) return toast("Name fehlt");
+    const qty=toNum(mQty.value,0); const unit=mUnit.value||"Stk"; const note=(mNote.value||"").trim();
+    p.chef.materials.unshift({id:uid(), name, qty, unit, note});
+    mName.value=""; mQty.value=""; mNote.value="";
+    save(); renderMaterials(); refreshChefPill(); toast("Hinzugefügt", name);
+  });
+
+  el("btnClearMat").addEventListener("click", ()=>{
+    const p=currentProject(); if(!p) return;
+    if(!confirm("Interne Materialliste wirklich leeren?")) return;
+    p.chef.materials=[]; save(); renderMaterials(); refreshChefPill();
+  });
+
+  function renderMaterials(){
+    const p=currentProject(); if(!p) return;
+    const list=p.chef.materials||[];
+    matPill.textContent=String(list.length);
+    if(!list.length){ matList.innerHTML='<div class="hint">(noch leer)</div>'; return; }
+    matList.innerHTML="";
+    list.forEach(it=>{
+      const row=document.createElement("div");
+      row.className="card"; row.style.cursor="default";
+      row.innerHTML = `
+        <div class="cardTitle">
+          <b>${escapeHtml(it.name)}</b>
+          <button class="btn small bad" type="button">✕</button>
+        </div>
+        <div class="grid2" style="margin-top:10px;">
+          <div><label>Menge</label><input value="${escapeHtml(it.qty)}" inputmode="decimal"/></div>
+          <div>
+            <label>Einheit</label>
+            <select>${["Stk","m","m²","Sack","m³","Paket"].map(u=>`<option ${u===it.unit?"selected":""}>${u}</option>`).join("")}</select>
+          </div>
+        </div>
+        <div style="margin-top:10px;"><label>Notiz</label><textarea>${escapeHtml(it.note||"")}</textarea></div>
+      `;
+      const btnDel=row.querySelector("button");
+      const inpQty=row.querySelectorAll("input")[0];
+      const selUnit=row.querySelectorAll("select")[0];
+      const ta=row.querySelector("textarea");
+      btnDel.addEventListener("click", ()=>{
+        const p2=currentProject(); if(!p2) return;
+        p2.chef.materials=(p2.chef.materials||[]).filter(x=>x.id!==it.id);
+        save(); renderMaterials(); refreshChefPill();
+      });
+      const commit=()=>{
+        const p2=currentProject(); if(!p2) return;
+        const tgt=(p2.chef.materials||[]).find(x=>x.id===it.id); if(!tgt) return;
+        tgt.qty=toNum(inpQty.value,0); tgt.unit=selUnit.value; tgt.note=(ta.value||"").trim(); save();
+      };
+      [inpQty,selUnit,ta].forEach(x=>{ x.addEventListener("change",commit); x.addEventListener("input",()=>setTimeout(commit,250)); });
+      matList.appendChild(row);
+    });
+  }
+
+  function compressImageToDataUrl(file, maxSide=1280, quality=0.72){
+    return new Promise((resolve,reject)=>{
+      const fr=new FileReader();
+      fr.onload=()=>{
+        const img=new Image();
+        img.onload=()=>{
+          const w=img.width, h=img.height;
+          const scale=Math.min(1, maxSide/Math.max(w,h));
+          const nw=Math.round(w*scale), nh=Math.round(h*scale);
+          const cv=document.createElement("canvas");
+          cv.width=nw; cv.height=nh;
+          const ctx=cv.getContext("2d");
+          ctx.drawImage(img,0,0,nw,nh);
+          resolve(cv.toDataURL("image/jpeg", quality));
+        };
+        img.onerror=reject;
+        img.src=fr.result;
+      };
+      fr.onerror=reject;
+      fr.readAsDataURL(file);
+    });
+  }
+
+  function renderPhotos(){
+    const p=currentProject(); if(!p) return;
+    const ph=p.chef.photos||[];
+    photoPill.textContent=String(ph.length);
+    photoGrid.innerHTML="";
+    const max=6;
+    for(let i=0;i<max;i++){
+      const slot=ph[i];
+      const div=document.createElement("div");
+      div.className="ph";
+      if(slot){
+        div.innerHTML = `
+          <div class="cardTitle"><b>Foto ${i+1}</b><button class="btn small bad" type="button">✕</button></div>
+          <div class="meta">${escapeHtml(slot.name||"")}</div>
+          <div style="margin-top:8px;"><img src="${slot.dataUrlSmall}" alt="Foto"/></div>
+        `;
+        div.querySelector("button").addEventListener("click", ()=>{
+          const p2=currentProject(); if(!p2) return;
+          p2.chef.photos.splice(i,1);
+          save(); renderPhotos(); refreshChefPill();
+        });
+      } else {
+        div.innerHTML = `
+          <b>+ Foto hinzufügen</b>
+          <div class="meta">Tippen → Kamera / Mediathek</div>
+          <div style="margin-top:8px;"><input type="file" accept="image/*" capture="environment"/></div>
+        `;
+        const input=div.querySelector("input");
+        input.addEventListener("change", async ()=>{
+          const file=input.files && input.files[0];
+          if(!file) return;
+          const dataUrlSmall = await compressImageToDataUrl(file, 1280, 0.72);
+          const p2=currentProject(); if(!p2) return;
+          p2.chef.photos=p2.chef.photos||[];
+          p2.chef.photos.push({id:uid(), name:file.name||"foto.jpg", type:file.type||"image/jpeg", dataUrlSmall});
+          save(); renderPhotos(); refreshChefPill(); toast("Foto gespeichert");
+        });
       }
-    }catch(e){
-      toast("Abgebrochen", "Teilen wurde geschlossen.");
+      photoGrid.appendChild(div);
     }
-  });
+  }
 
-  btnDownload.addEventListener("click", () => {
-    const p = currentProject();
-    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
-    const text = buildExportText(p);
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    const a = document.createElement("a");
-    const safeName = (p.title || "Materialliste").replace(/[^\w\-äöüÄÖÜß ]+/g, "").trim().replace(/\s+/g, "_");
-    a.download = `Materialliste-${safeName || "Zaun"}.txt`;
-    a.href = URL.createObjectURL(blob);
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-    toast("Download", "TXT-Datei erstellt.");
-  });
+  function chefWhatsText(p){
+    const lines=[];
+    lines.push(`INTERN – ${p.title}`);
+    if(p.plannedDate) lines.push(`Ausführung: ${p.plannedDate}`);
+    if(p.phone) lines.push(`Tel: ${p.phone}`);
+    if(p.addr) lines.push(`Kunde: ${p.addr}`);
+    if(p.objAddr) lines.push(`Objekt: ${p.objAddr}`);
+    lines.push("");
+    const eq=[];
+    if(p.chef.bagger==="yes") eq.push("Bagger");
+    if(p.chef.ramme==="yes") eq.push("Ramme");
+    if(p.chef.haenger==="yes") eq.push("Hänger");
+    if(eq.length){
+      lines.push("Geräte:");
+      eq.forEach(x=>lines.push(`- ${x}`));
+      lines.push("");
+    }
+    const mats=p.chef.materials||[];
+    lines.push("Material (intern):");
+    if(!mats.length) lines.push("(leer)");
+    else mats.forEach(it=>{
+      const q=fmt(toNum(it.qty,0));
+      const u=it.unit||"Stk";
+      const note=(it.note||"").trim();
+      lines.push(`- ${it.name}: ${q} ${u}${note?(" ("+note+")"):""}`);
+    });
+    const ph=p.chef.photos||[];
+    if(ph.length){ lines.push(""); lines.push(`Fotos: ${ph.length} (im Backup.json)`); }
+    if((p.chef.note||"").trim()){
+      lines.push("");
+      lines.push("Hinweise:");
+      lines.push(p.chef.note.trim());
+    }
+    return lines.join("\n");
+  }
 
-  btnCopy.addEventListener("click", async () => {
-    const p = currentProject();
-    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
-    const text = buildExportText(p);
-    try{ await navigator.clipboard.writeText(text); toast("Kopiert", "Exporttext in Zwischenablage."); }
-    catch(e){ exportPreview.focus(); exportPreview.select(); toast("Hinweis", "Manuell markieren & kopieren (iOS)."); }
-  });
+  el("btnCWhats").addEventListener("click", async ()=>{ const p=currentProject(); if(!p) return; await shareText(chefWhatsText(p),"Intern"); });
+  el("btnCDown").addEventListener("click", ()=>{ const p=currentProject(); if(!p) return; downloadText(chefWhatsText(p), fileSafe(`${p.title}_Intern.txt`)); });
 
-  btnFactoryReset.addEventListener("click", () => {
-    if(!confirm("ALLES löschen?\n\nAlle Projekte, Listen und Abschnitte werden entfernt.")) return;
+  // Backup
+  el("btnBackup").addEventListener("click", ()=>{
+    const data={ exportedAt: nowISO(), tool:"Zaunteam Zaunplaner", version:"1.4", state };
+    downloadText(JSON.stringify(data,null,2), "Zaunplaner_Backup.json", "application/json");
+  });
+  el("btnCSV").addEventListener("click", ()=>{
+    const p=currentProject(); if(!p) return toast("Kein Projekt");
+    const rows=[["Projekt","Datum","Material","Menge","Einheit","Notiz"]].concat((p.chef.materials||[]).map(it=>[p.title,p.plannedDate||"",it.name||"",String(it.qty??""),it.unit||"",it.note||""]));
+    const csv=rows.map(r=>r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(";")).join("\n");
+    downloadText(csv, fileSafe(`${p.title}_Material.csv`), "text/csv");
+  });
+  el("btnReset").addEventListener("click", ()=>{
+    if(!confirm("Wirklich ALLE lokalen Daten löschen?")) return;
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem("js_zaunmaterial_deluxe_v1");
-    state = { version:"1.1", selectedProjectId:null, projects:[] };
-    toast("Reset", "Alles gelöscht.");
-    initIfEmpty();
-    refreshAll();
+    LEGACY_KEYS.forEach(k=>localStorage.removeItem(k));
+    location.reload();
   });
+
+  function refreshCustomerUI(){
+    const p=currentProject(); if(!p) return;
+    const c=p.customer;
+    el("kundeTitle").textContent = `👤 Kunde: ${p.title}`;
+    kLen.value=c.length||"";
+    kHeight.value=String(c.height||160);
+    kSystem.value=c.system||"Doppelstab";
+    kColor.value=c.color||"Anthrazit (RAL 7016)";
+    kWood.value=c.woodType||"—";
+    kWpc.value=c.wpcType||"—";
+    kSlopeType.value=c.slopeType||"flat";
+    kSlopePct.value=c.slopePct||"";
+    setCorners(c.corners||0);
+    kConcreteMode.value=c.concreteMode||"sacks";
+    updateConcretePlaceholder();
+    kConcreteVal.value=c.concreteValue||"";
+    kNote.value=c.note||"";
+    toggleMaterialDependent();
+    refreshKpi();
+  }
+
+  function refreshChefUI(){
+    const p=currentProject();
+    el("chefTitle").textContent = p ? `🛠️ Chef/Team: ${p.title}` : "🛠️ Chef / Team";
+    if(!p) return;
+    cBagger.value=p.chef.bagger||"no";
+    cRamme.value=p.chef.ramme||"no";
+    cHaenger.value=p.chef.haenger||"no";
+    cNote.value=p.chef.note||"";
+    renderMaterials(); renderPhotos(); refreshChefPill();
+  }
 
   function refreshAll(){
-    refreshProjects();
-    refreshProjectsList();
-    refreshMaterials();
-    refreshCalc();
-    refreshExport();
+    refreshProjectSelectors();
+    refreshCustomerUI();
+    refreshChefUI();
+    updateStatusPill();
   }
 
-  function initIfEmpty(){
-    ensureProjectSelected();
-    if(!cPanelW.value.trim()) cPanelW.value = "2,5";
-    if(!cDefaultH.value) cDefaultH.value = "160";
-
-    if(state.projects.length === 0){
-      const demo = {
-        id: uid(),
-        title: "Demo: Zaunbau Muster",
-        createdAt: nowISO(),
-        plannedDate: "",
-        phone: "",
-        addressCustomer: "—",
-        addressSite: "",
-        items: [{ id: uid(), name:"Anschlussleisten", qty:0, unit:"Stk", note:"manuell", seg:"ALL", done:false, createdAt: nowISO() }],
-        segments: [{ id: uid(), title:"A", length:10.0, height:160 }],
-        plan: { length:"10", height:160, system:"Doppelstab", color:"Anthrazit (RAL 7016)", woodType:"", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" }
-      };
-      state.projects.unshift(demo);
-      state.selectedProjectId = demo.id;
-    }
-    ensureProjectSelected();
-  }
-
-  function escapeHtml(s){
-    return String(s ?? "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
-  function escapeAttr(s){ return escapeHtml(s).replaceAll("\n"," "); }
-
-  initIfEmpty();
+  // init
+  fillHeights();
+  fillSelect(kColor, ZAUNTEAM_FARBEN, "Anthrazit (RAL 7016)");
+  fillSelect(kWood, HOLZARTEN, "—");
+  fillSelect(kWpc, WPC_VARIANTEN, "—");
+  updateConcretePlaceholder();
+  migrateLegacy();
   refreshAll();
 })();
 </script>
