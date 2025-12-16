@@ -198,7 +198,7 @@
       <div class="sigil" aria-hidden="true"></div>
       <div class="titlewrap">
         <h1>ZaunMaterial</h1>
-        <div class="subtitle">Jaguar‑Spirit Deluxe • v1.1</div>
+        <div class="subtitle">Jaguar‑Spirit Deluxe • v1.2</div>
       </div>
     </div>
     <div class="chip">
@@ -384,11 +384,121 @@
       </div>
       <div class="sep"></div>
       <div class="hint">
-        Kein „Ecken“-Feld mehr. Berechnung pro Abschnitt: <b class="goldText">Matten</b>, <b class="goldText">Pfosten</b> (1 mehr als Matten), <b class="goldText">Pfostenleisten</b> = 1 pro Pfosten.
+        Schnell‑Planung: Gesamtlänge + Höhe + Material + Gelände + Ecken + Beton + Geräte. Abschnitte A–F bleiben optional für Feinarbeit.
       </div>
     </div>
 
+    
     <div class="panel">
+      <details open id="planDetails">
+        <summary>
+          <span>⚡ Schnell‑Planung (Kunde/Baustelle)</span>
+          <span class="pill" id="planPill">bereit</span>
+        </summary>
+        <div class="sep"></div>
+
+        <div class="grid2">
+          <div>
+            <label>Gesamtlänge Zaun (m)</label>
+            <input id="planLength" inputmode="decimal" placeholder="z.B. 18" />
+          </div>
+          <div>
+            <label>Höhe</label>
+            <select id="planHeight"></select>
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:10px;">
+          <div>
+            <label>Material / System</label>
+            <select id="planSystem">
+              <option value="Doppelstab">Doppelstab</option>
+              <option value="Aluminium">Aluminium</option>
+              <option value="Holz">Holz</option>
+              <option value="WPC">WPC</option>
+            </select>
+          </div>
+          <div>
+            <label>Gelände</label>
+            <select id="planSlopeType">
+              <option value="flat">gerade</option>
+              <option value="slope">abschüssig</option>
+              <option value="hang">am Hang</option>
+              <option value="steep">steil</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:10px;">
+          <div>
+            <label>Neigung % (optional)</label>
+            <input id="planSlopePct" inputmode="decimal" placeholder="z.B. 12" />
+          </div>
+          <div>
+            <label>Ecken (Anzahl)</label>
+            <div class="row tight" style="gap:8px;">
+              <button class="btn small" id="planCornersMinus" type="button">−</button>
+              <input id="planCorners" inputmode="numeric" value="0" style="text-align:center; flex:1;" />
+              <button class="btn small" id="planCornersPlus" type="button">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="grid2">
+          <div>
+            <label>Beton‑Modus</label>
+            <select id="planConcreteMode">
+              <option value="sacks">Säcke (Anzahl)</option>
+              <option value="m3">Fertigbeton (m³)</option>
+            </select>
+          </div>
+          <div>
+            <label id="planConcreteLabel">Säcke (Anzahl)</label>
+            <input id="planConcreteValue" inputmode="decimal" placeholder="z.B. 18" />
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="grid3">
+          <div>
+            <label>Bagger</label>
+            <select id="planBagger">
+              <option value="no">nein</option>
+              <option value="yes">ja</option>
+            </select>
+          </div>
+          <div>
+            <label>Ramme</label>
+            <select id="planRamme">
+              <option value="no">nein</option>
+              <option value="yes">ja</option>
+            </select>
+          </div>
+          <div>
+            <label>Hänger</label>
+            <select id="planHaenger">
+              <option value="no">nein</option>
+              <option value="yes">ja</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+        <div class="btnbar">
+          <button class="btn primary" id="btnPlanApply">✅ Aus Schnell‑Planung übernehmen</button>
+          <button class="btn" id="btnPlanClear">🧽 Planung leeren</button>
+        </div>
+
+        <div class="hint" style="margin-top:10px;">
+          „Übernehmen“ schreibt eine grobe Materialliste ins Material‑Tab (Matten/Pfosten/Pfostenleisten/Eckpfosten/Beton + System).
+        </div>
+      </details>
+    </div>
+
+<div class="panel">
       <details open>
         <summary>
           <span>🧮 Abschnitte A–F (Dropdown‑Liste)</span>
@@ -438,7 +548,7 @@
         <b class="goldText">Update‑Hinweis (GitHub Pages):</b><br>
         Wenn du eine neue Version hochlädst, Safari ggf. einmal neu laden / PWA neu öffnen.
       </div>
-      <div class="footer">ZaunMaterial • v1.1 • Jaguar‑Spirit Deluxe</div>
+      <div class="footer">ZaunMaterial • v1.2 • Jaguar‑Spirit Deluxe</div>
     </div>
   </section>
 </main>
@@ -452,7 +562,7 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "js_zaunmaterial_deluxe_v1_1";
+  const STORAGE_KEY = "js_zaunmaterial_deluxe_v1_2";
   const nowISO = () => new Date().toISOString();
   const uid = () => Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
   const DEFAULT_HEIGHTS = [60,80,100,120,140,160,180,200];
@@ -477,6 +587,7 @@
             p.addressCustomer = p.addressCustomer || (p.address || "");
             p.addressSite = p.addressSite || "";
             p.plannedDate = p.plannedDate || "";
+            if(!p.plan) p.plan = { length:"", height:160, system:"Doppelstab", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" };
             (p.items||[]).forEach(it => { if(!it.seg) it.seg = "ALL"; });
             (p.segments||[]).forEach(seg => { delete seg.corners; });
           });
@@ -564,7 +675,8 @@
       addressCustomer: (pAddrCustomer.value || "").trim(),
       addressSite: (pAddrSite.value || "").trim(),
       items: [],
-      segments: []
+      segments: [],
+      plan: { length:"", height:160, system:"Doppelstab", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" }
     };
     state.projects.unshift(proj);
     state.selectedProjectId = proj.id;
@@ -588,7 +700,7 @@ ${p.title}
     saveState();
   });
 
-  projectSelect.addEventListener("change", () => { state.selectedProjectId = projectSelect.value || null; saveState(); });
+  projectSelect.addEventListener("change", () => { state.selectedProjectId = projectSelect.value || null; saveState(); setTab("calc"); setTimeout(()=>{ try{ document.getElementById("planDetails").open = true; }catch(e){} }, 120); });
   projectSort.addEventListener("change", refreshProjectsList);
   projectSearch.addEventListener("input", refreshProjectsList);
 
@@ -678,7 +790,9 @@ ${p.title}
         state.selectedProjectId = p.id;
         toast("Projekt aktiv", p.title);
         saveState();
-        projectDropdown.open = true;
+        projectDropdown.open = false;
+        setTab("calc");
+        setTimeout(()=>{ try{ document.getElementById("planDetails").open = true; document.getElementById("planLength")?.focus(); }catch(e){} }, 120);
       });
       projectList.appendChild(card);
     });
@@ -748,9 +862,7 @@ ${p.title}
     const preset = [
       { name:"Schrauben/Muttern/Unterlegscheiben", qty:0, unit:"Paket", note:"", seg:"ALL" },
       { name:"Befestigungsklemmen / Halter", qty:0, unit:"Stk", note:"", seg:"ALL" },
-      { name:"Abdeckkappen Pfosten", qty:0, unit:"Stk", note:"", seg:"ALL" },
-      { name:"Schnur / Markierungsspray", qty:0, unit:"Stk", note:"", seg:"ALL" },
-      { name:"Korrosionsschutz / Zinkspray (optional)", qty:0, unit:"Stk", note:"", seg:"ALL" }
+      { name:"Abdeckkappen Pfosten", qty:0, unit:"Stk", note:"", seg:"ALL" }
     ];
     insertAvoidDupItems(p, preset, "Preset eingefügt", "Allgemein");
   });
@@ -890,9 +1002,190 @@ ${it.name}`)) return;
       cDefaultH.appendChild(o);
     });
   }
-  fillHeights();
+  
+fillHeights();
+
+  // -------- Schnell‑Planung --------
+  const planDetails = document.getElementById("planDetails");
+  const planPill = document.getElementById("planPill");
+  const planLength = document.getElementById("planLength");
+  const planHeight = document.getElementById("planHeight");
+  const planSystem = document.getElementById("planSystem");
+  const planSlopeType = document.getElementById("planSlopeType");
+  const planSlopePct = document.getElementById("planSlopePct");
+  const planCorners = document.getElementById("planCorners");
+  const planCornersMinus = document.getElementById("planCornersMinus");
+  const planCornersPlus = document.getElementById("planCornersPlus");
+  const planConcreteMode = document.getElementById("planConcreteMode");
+  const planConcreteLabel = document.getElementById("planConcreteLabel");
+  const planConcreteValue = document.getElementById("planConcreteValue");
+  const planBagger = document.getElementById("planBagger");
+  const planRamme = document.getElementById("planRamme");
+  const planHaenger = document.getElementById("planHaenger");
+  const btnPlanApply = document.getElementById("btnPlanApply");
+  const btnPlanClear = document.getElementById("btnPlanClear");
+
+  function fillPlanHeights(){
+    if(!planHeight) return;
+    planHeight.innerHTML = "";
+    DEFAULT_HEIGHTS.forEach(h => {
+      const o = document.createElement("option");
+      o.value = String(h);
+      o.textContent = `${h} cm`;
+      planHeight.appendChild(o);
+    });
+  }
+  fillPlanHeights();
+
+  function setConcreteLabel(){
+    if(!planConcreteMode || !planConcreteLabel || !planConcreteValue) return;
+    const m = planConcreteMode.value;
+    planConcreteLabel.textContent = (m === "m3") ? "Fertigbeton (m³)" : "Säcke (Anzahl)";
+    planConcreteValue.placeholder = (m === "m3") ? "z.B. 0,8" : "z.B. 18";
+  }
+  planConcreteMode?.addEventListener("change", () => { setConcreteLabel(); persistPlanFromUI(); });
+  setConcreteLabel();
+
+  function clampInt(n, lo, hi){
+    n = Math.trunc(Number(n));
+    if(!Number.isFinite(n)) n = 0;
+    return Math.max(lo, Math.min(hi, n));
+  }
+  function cornersVal(){ return clampInt(planCorners?.value ?? 0, 0, 99); }
+  function setCorners(v){ if(planCorners) planCorners.value = String(clampInt(v, 0, 99)); }
+
+  planCornersMinus?.addEventListener("click", () => { setCorners(cornersVal()-1); persistPlanFromUI(); });
+  planCornersPlus?.addEventListener("click", () => { setCorners(cornersVal()+1); persistPlanFromUI(); });
+  planCorners?.addEventListener("change", () => { setCorners(cornersVal()); persistPlanFromUI(); });
+
+  [planLength, planHeight, planSystem, planSlopeType, planSlopePct, planConcreteValue, planBagger, planRamme, planHaenger].forEach(x => {
+    x?.addEventListener("change", () => persistPlanFromUI());
+    x?.addEventListener("input", () => persistPlanFromUI());
+  });
+
+  function ensurePlan(p){
+    if(!p.plan){
+      p.plan = { length:"", height:160, system:"Doppelstab", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" };
+    }
+  }
+
+  function persistPlanFromUI(){
+    const p = currentProject();
+    if(!p) return;
+    ensurePlan(p);
+    p.plan.length = (planLength?.value ?? "").trim();
+    p.plan.height = Number(planHeight?.value) || 160;
+    p.plan.system = planSystem?.value || "Doppelstab";
+    p.plan.slopeType = planSlopeType?.value || "flat";
+    p.plan.slopePct = (planSlopePct?.value ?? "").trim();
+    p.plan.corners = cornersVal();
+    p.plan.concreteMode = planConcreteMode?.value || "sacks";
+    p.plan.concreteValue = (planConcreteValue?.value ?? "").trim();
+    p.plan.bagger = planBagger?.value || "no";
+    p.plan.ramme = planRamme?.value || "no";
+    p.plan.haenger = planHaenger?.value || "no";
+
+    if(planPill){
+      const ok = !!p.plan.length;
+      planPill.textContent = ok ? "gesetzt" : "bereit";
+      planPill.className = "pill " + (ok ? "good" : "");
+    }
+    saveState();
+  }
+
+  function loadPlanToUI(){
+    const p = currentProject();
+    if(!p) return;
+    ensurePlan(p);
+    if(planLength) planLength.value = p.plan.length || "";
+    if(planHeight) planHeight.value = String(p.plan.height || 160);
+    if(planSystem) planSystem.value = p.plan.system || "Doppelstab";
+    if(planSlopeType) planSlopeType.value = p.plan.slopeType || "flat";
+    if(planSlopePct) planSlopePct.value = p.plan.slopePct || "";
+    setCorners(p.plan.corners || 0);
+    if(planConcreteMode) planConcreteMode.value = p.plan.concreteMode || "sacks";
+    setConcreteLabel();
+    if(planConcreteValue) planConcreteValue.value = p.plan.concreteValue || "";
+    if(planBagger) planBagger.value = p.plan.bagger || "no";
+    if(planRamme) planRamme.value = p.plan.ramme || "no";
+    if(planHaenger) planHaenger.value = p.plan.haenger || "no";
+
+    if(planPill){
+      const ok = !!(p.plan.length || "").trim();
+      planPill.textContent = ok ? "gesetzt" : "bereit";
+      planPill.className = "pill " + (ok ? "good" : "");
+    }
+  }
+
+  btnPlanClear?.addEventListener("click", () => {
+    const p = currentProject();
+    if(!p) return;
+    p.plan = { length:"", height:160, system:"Doppelstab", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" };
+    loadPlanToUI();
+    saveState();
+    toast("Planung geleert", "");
+  });
+
+  function systemMatName(system, height){
+    const h = Number(height) || 160;
+    if(system === "Doppelstab") return `Doppelstab‑Matten 2,50m • ${h} cm`;
+    if(system === "Aluminium") return `Alu‑Elemente 2,50m • ${h} cm`;
+    if(system === "Holz") return `Holz‑Elemente 2,50m • ${h} cm`;
+    if(system === "WPC") return `WPC‑Elemente 2,50m • ${h} cm`;
+    return `Zaun‑Elemente 2,50m • ${h} cm`;
+  }
+
+  btnPlanApply?.addEventListener("click", () => {
+    const p = currentProject();
+    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
+    ensurePlan(p);
+
+    const lengthM = Math.max(0, toNum(p.plan.length, 0));
+    if(!lengthM){ toast("Länge fehlt", "Bitte Gesamtlänge eingeben."); return; }
+
+    const panelW = defaultPanelW();
+    const panels = Math.ceil(lengthM / Math.max(0.1, panelW));
+    const posts = panels + 1;
+    const corners = clampInt(p.plan.corners || 0, 0, 99);
+    const cornerPosts = corners;
+    const strips = posts + corners; // Eckpfosten brauchen 2 Leisten -> +1 extra pro Ecke
+
+    upsertItem(p, systemMatName(p.plan.system || "Doppelstab", p.plan.height), panels, "Stk", "Schnell‑Planung", "ALL");
+    upsertItem(p, "Pfosten (Planung)", posts, "Stk", "1 mehr als Matten", "ALL");
+    upsertItem(p, "Pfostenleisten (Planung)", strips, "Stk", "1 pro Pfosten, Eckpfosten +1", "ALL");
+    if(cornerPosts > 0){
+      upsertItem(p, "Eckpfosten (Planung)", cornerPosts, "Stk", "1 pro Ecke", "ALL");
+    }
+
+    const cmode = p.plan.concreteMode || "sacks";
+    const cval = (p.plan.concreteValue || "").trim();
+    if(cval){
+      if(cmode === "m3"){
+        upsertItem(p, "Beton (Fertigbeton)", toNum(cval, 0), "m³", "Schnell‑Planung", "ALL");
+      }else{
+        upsertItem(p, "Beton (Säcke)", toNum(cval, 0), "Sack", "Schnell‑Planung", "ALL");
+      }
+    }
+
+    const slopeTypeTxt = ({flat:"gerade", slope:"abschüssig", hang:"am Hang", steep:"steil"})[p.plan.slopeType] || "gerade";
+    const slopePctTxt = (p.plan.slopePct||"").trim() ? ` (${(p.plan.slopePct||"").trim()}%)` : "";
+    upsertItem(p, "Gelände / Neigung", 1, "Stk", `${slopeTypeTxt}${slopePctTxt}`, "ALL");
+
+    const eq = [];
+    if((p.plan.bagger||"no")==="yes") eq.push("Bagger");
+    if((p.plan.ramme||"no")==="yes") eq.push("Ramme");
+    if((p.plan.haenger||"no")==="yes") eq.push("Hänger");
+    if(eq.length){
+      upsertItem(p, "Geräte", 1, "Stk", eq.join(", "), "ALL");
+    }
+
+    toast("Übernommen", "Planung → Materialliste");
+    saveState();
+    setTab("materials");
+  });
 
   function defaultPanelW(){
+
     const v = cPanelW.value.trim();
     if(!v) return 2.5;
     return Math.max(0.1, toNum(v, 2.5));
@@ -965,6 +1258,7 @@ ${it.name}`)) return;
     segList.innerHTML = "";
     kpi.innerHTML = "";
     if(!p){ segList.innerHTML = `<div class="hint">Kein Projekt aktiv.</div>`; return; }
+    try{ loadPlanToUI(); }catch(e){}
 
     const segs = (p.segments||[]);
     segCountPill.textContent = String(segs.length);
@@ -1098,6 +1392,19 @@ ${seg.title||"—"}`)) return;
     lines.push(`Kundenadresse: ${p.addressCustomer || "—"}`);
     lines.push(`Objektadresse: ${p.addressSite || "—"}`);
     lines.push(`Erstellt: ${(p.createdAt||"").slice(0,10) || "—"}`);
+    if(p.plan){
+      const slopeTxt = ({flat:"gerade", slope:"abschüssig", hang:"am Hang", steep:"steil"})[p.plan.slopeType] || "gerade";
+      const pct = (p.plan.slopePct||"").trim();
+      lines.push(`Planung: Länge ${p.plan.length||"—"} m • Höhe ${(p.plan.height||"—")} cm • System ${p.plan.system||"—"}`);
+      lines.push(`Gelände: ${slopeTxt}${pct?` (${pct}%)`:``} • Ecken: ${p.plan.corners ?? 0}`);
+      const eq = [];
+      if((p.plan.bagger||"no")==="yes") eq.push("Bagger");
+      if((p.plan.ramme||"no")==="yes") eq.push("Ramme");
+      if((p.plan.haenger||"no")==="yes") eq.push("Hänger");
+      if(eq.length) lines.push(`Geräte: ${eq.join(", ")}`);
+      const cv = (p.plan.concreteValue||"").trim();
+      if(cv) lines.push(`Beton: ${p.plan.concreteMode==="m3" ? (cv+" m³") : (cv+" Sack")}`);
+    }
     lines.push("");
 
     if((p.segments||[]).length){
@@ -1219,7 +1526,8 @@ ${seg.title||"—"}`)) return;
         addressCustomer: "—",
         addressSite: "",
         items: [{ id: uid(), name:"Anschlussleisten", qty:0, unit:"Stk", note:"manuell", seg:"ALL", done:false, createdAt: nowISO() }],
-        segments: [{ id: uid(), title:"A", length:10.0, height:160 }]
+        segments: [{ id: uid(), title:"A", length:10.0, height:160 }],
+        plan: { length:"10", height:160, system:"Doppelstab", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" }
       };
       state.projects.unshift(demo);
       state.selectedProjectId = demo.id;
