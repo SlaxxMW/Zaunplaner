@@ -198,7 +198,7 @@
       <div class="sigil" aria-hidden="true"></div>
       <div class="titlewrap">
         <h1>ZaunMaterial</h1>
-        <div class="subtitle">Jaguar‑Spirit Deluxe • v1.2</div>
+        <div class="subtitle">Jaguar‑Spirit Deluxe • v1.3</div>
       </div>
     </div>
     <div class="chip">
@@ -306,16 +306,9 @@
         </div>
       </div>
 
-      <div class="row tight" style="margin-top:10px; align-items:flex-end;">
-        <div style="flex:1.2">
-          <label>Abschnitt</label>
-          <select id="mSeg">
-            <option value="ALL">Alle / allgemein</option>
-            <option value="A">A</option><option value="B">B</option><option value="C">C</option>
-            <option value="D">D</option><option value="E">E</option><option value="F">F</option>
-          </select>
-        </div>
-        <div style="flex:2.8">
+      <label>Notiz (grob, optional)</label>
+      <textarea id="mNote" placeholder="Freitext / kurze Übersicht…"></textarea>
+<div style="flex:2.8">
           <label>Notiz (optional)</label>
           <input id="mNote" placeholder="z.B. Anthrazit RAL7016 / Doppelstab" />
         </div>
@@ -350,15 +343,7 @@
             <option value="done">Erledigt</option>
           </select>
         </div>
-        <div style="flex:1">
-          <label>Abschnitt</label>
-          <select id="materialSegFilter">
-            <option value="ALL">Alle</option>
-            <option value="GEN">Nur allgemein</option>
-            <option value="A">A</option><option value="B">B</option><option value="C">C</option>
-            <option value="D">D</option><option value="E">E</option><option value="F">F</option>
-          </select>
-        </div>
+        
       </div>
 
       <div class="sep"></div>
@@ -426,7 +411,35 @@
               <option value="hang">am Hang</option>
               <option value="steep">steil</option>
             </select>
+          
+        <div class="grid2" style="margin-top:10px;">
+          <div>
+            <label>Farbe</label>
+            <select id="planColor">
+              <option value="Anthrazit (RAL 7016)">Anthrazit (RAL 7016)</option>
+              <option value="Schwarz (RAL 9005)">Schwarz (RAL 9005)</option>
+              <option value="Grau (RAL 7030/7035)">Grau (RAL 7030/7035)</option>
+              <option value="Grün">Grün</option>
+              <option value="Weiß">Weiß</option>
+              <option value="Verzinkt / Natur">Verzinkt / Natur</option>
+              <option value="Holz Natur">Holz Natur</option>
+              <option value="Holz Lasur">Holz Lasur</option>
+            </select>
           </div>
+          <div>
+            <label>Holzart (nur bei Holz)</label>
+            <select id="planWoodType">
+              <option value="">—</option>
+              <option value="Lärche">Lärche</option>
+              <option value="Douglasie">Douglasie</option>
+              <option value="Kiefer">Kiefer</option>
+              <option value="Fichte">Fichte</option>
+              <option value="Eiche">Eiche</option>
+            </select>
+          </div>
+        </div>
+
+</div>
         </div>
 
         <div class="grid2" style="margin-top:10px;">
@@ -462,7 +475,7 @@
 
         <div class="sep"></div>
 
-        <div class="grid3">
+        <div class="grid2">
           <div>
             <label>Bagger</label>
             <select id="planBagger">
@@ -548,7 +561,7 @@
         <b class="goldText">Update‑Hinweis (GitHub Pages):</b><br>
         Wenn du eine neue Version hochlädst, Safari ggf. einmal neu laden / PWA neu öffnen.
       </div>
-      <div class="footer">ZaunMaterial • v1.2 • Jaguar‑Spirit Deluxe</div>
+      <div class="footer">ZaunMaterial • v1.3 • Jaguar‑Spirit Deluxe</div>
     </div>
   </section>
 </main>
@@ -562,7 +575,7 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "js_zaunmaterial_deluxe_v1_2";
+  const STORAGE_KEY = "js_zaunmaterial_deluxe_v1_3";
   const nowISO = () => new Date().toISOString();
   const uid = () => Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
   const DEFAULT_HEIGHTS = [60,80,100,120,140,160,180,200];
@@ -576,6 +589,16 @@
       if(raw){
         const s = JSON.parse(raw);
         if(!Array.isArray(s.projects)) s.projects = [];
+
+        // Cleanup: entferne Werkzeug‑Einträge aus alten Kunden‑Listen
+        const banned = ["zinkspray","schnur","bodenhülsen","bodenhuelsen","markierungsspray","zink spray"];
+        s.projects.forEach(p=>{
+          p.items = (p.items||[]).filter(it=>{
+            const n = (it.name||"").toLowerCase();
+            return !banned.some(b=> n.includes(b));
+          });
+        });
+
         if(!s.version) s.version = "1.1";
         return s;
       }
@@ -587,7 +610,7 @@
             p.addressCustomer = p.addressCustomer || (p.address || "");
             p.addressSite = p.addressSite || "";
             p.plannedDate = p.plannedDate || "";
-            if(!p.plan) p.plan = { length:"", height:160, system:"Doppelstab", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" };
+            if(!p.plan) p.plan = { length:"", height:160, system:"Doppelstab", color:"Anthrazit (RAL 7016)", woodType:"", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" };
             (p.items||[]).forEach(it => { if(!it.seg) it.seg = "ALL"; });
             (p.segments||[]).forEach(seg => { delete seg.corners; });
           });
@@ -676,7 +699,7 @@
       addressSite: (pAddrSite.value || "").trim(),
       items: [],
       segments: [],
-      plan: { length:"", height:160, system:"Doppelstab", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" }
+      plan: { length:"", height:160, system:"Doppelstab", color:"Anthrazit (RAL 7016)", woodType:"", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" }
     };
     state.projects.unshift(proj);
     state.selectedProjectId = proj.id;
@@ -786,7 +809,8 @@ ${p.title}
           <button class="btn small ${isActive ? 'ghost':'primary'}">${isActive ? '✅' : 'Wählen'}</button>
         </div>
       `;
-      card.querySelector("button").addEventListener("click", () => {
+      card.style.cursor = "pointer";
+      card.addEventListener("click", () => {
         state.selectedProjectId = p.id;
         toast("Projekt aktiv", p.title);
         saveState();
@@ -801,7 +825,6 @@ ${p.title}
   const mName = el("mName");
   const mQty = el("mQty");
   const mUnit = el("mUnit");
-  const mSeg = el("mSeg");
   const mNote = el("mNote");
   const btnAddItem = el("btnAddItem");
   const btnPresetFence = el("btnPresetFence");
@@ -809,7 +832,6 @@ ${p.title}
   const btnClearDone = el("btnClearDone");
   const materialSearch = el("materialSearch");
   const materialFilter = el("materialFilter");
-  const materialSegFilter = el("materialSegFilter");
   const materialList = el("materialList");
 
   btnAddItem.addEventListener("click", () => {
@@ -820,89 +842,19 @@ ${p.title}
     const qty = toNum(mQty.value, 0);
     const unit = mUnit.value;
     const note = mNote.value.trim();
-    const seg = mSeg.value || "ALL";
-    p.items.unshift({ id: uid(), name, qty, unit, note, seg, done:false, createdAt: nowISO() });
+    p.items.unshift({ id: uid(), name, qty, unit, note, seg:"ALL", done:false, createdAt: nowISO() });
     mName.value = ""; mQty.value = ""; mNote.value = "";
-    toast("Hinzugefügt", `${name} (${seg})`);
+    toast("Hinzugefügt", name);
     saveState();
   });
 
   function insertAvoidDupItems(project, presetItems, t, d){
     const existing = new Set((project.items||[]).map(x => (x.name||"").toLowerCase() + "|" + (x.seg||"ALL")));
     let added = 0;
-    presetItems.forEach(it => {
-      const seg = it.seg || "ALL";
-      const key = (it.name||"").toLowerCase() + "|" + seg;
-      if(existing.has(key)) return;
-      project.items.unshift({ id: uid(), name: it.name, qty: it.qty, unit: it.unit, note: it.note, seg, done:false, createdAt: nowISO() });
-      existing.add(key);
-      added++;
-    });
-    toast(t, `${d} • +${added}`);
-    saveState();
-  }
-
-  btnPresetFence.addEventListener("click", () => {
-    const p = currentProject();
-    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
-    const preset = [
-      { name:"Anschlussleisten", qty:0, unit:"Stk", note:"manuell", seg:"ALL" },
-      { name:"Pfosten – 2000mm", qty:0, unit:"Stk", note:"z.B. 60x40", seg:"ALL" },
-      { name:"Pfosten – 2300mm", qty:0, unit:"Stk", note:"z.B. 60x40", seg:"ALL" },
-      { name:"Pfosten – 2600mm", qty:0, unit:"Stk", note:"z.B. 60x40", seg:"ALL" },
-      { name:"Matten 2,50m – Höhe (wählbar)", qty:0, unit:"Stk", note:"Doppelstab", seg:"ALL" },
-      { name:"Beton", qty:0, unit:"Sack", note:"25kg", seg:"ALL" }
-    ];
-    insertAvoidDupItems(p, preset, "Preset eingefügt", "Standard‑Zaunliste");
-  });
-
-  btnPresetGeneral.addEventListener("click", () => {
-    const p = currentProject();
-    if(!p){ toast("Kein Projekt", "Lege zuerst ein Projekt an."); return; }
-    const preset = [
-      { name:"Schrauben/Muttern/Unterlegscheiben", qty:0, unit:"Paket", note:"", seg:"ALL" },
-      { name:"Befestigungsklemmen / Halter", qty:0, unit:"Stk", note:"", seg:"ALL" },
-      { name:"Abdeckkappen Pfosten", qty:0, unit:"Stk", note:"", seg:"ALL" }
-    ];
-    insertAvoidDupItems(p, preset, "Preset eingefügt", "Allgemein");
-  });
-
-  btnClearDone.addEventListener("click", () => {
-    const p = currentProject();
-    if(!p) return;
-    const before = p.items.length;
-    p.items = p.items.filter(it => !it.done);
-    toast("Erledigte gelöscht", `${before - p.items.length} entfernt`);
-    saveState();
-  });
-
-  materialSearch.addEventListener("input", refreshMaterials);
-  materialFilter.addEventListener("change", refreshMaterials);
-  materialSegFilter.addEventListener("change", refreshMaterials);
-
-  function segLabel(s){
-    if(!s || s==="ALL") return "ALL";
-    return String(s).toUpperCase();
-  }
-
-  function refreshMaterials(){
-    const p = currentProject();
-    materialList.innerHTML = "";
-    if(!p){ materialList.innerHTML = `<div class="hint">Kein Projekt aktiv.</div>`; return; }
-
-    const q = (materialSearch.value||"").trim().toLowerCase();
-    const f = materialFilter.value || "all";
-    const sf = materialSegFilter.value || "ALL";
-
-    const items = (p.items||[]).filter(it => {
+    presetItems.forEach(it => {    const items = (p.items||[]).filter(it => {
       const matchQ = !q || (it.name||"").toLowerCase().includes(q) || (it.note||"").toLowerCase().includes(q);
       const matchF = (f==="all") || (f==="open" && !it.done) || (f==="done" && it.done);
-      const seg = it.seg || "ALL";
-      const matchSeg =
-        (sf==="ALL") ||
-        (sf==="GEN" && (seg==="ALL")) ||
-        (sf!=="ALL" && sf!=="GEN" && segLabel(seg)===sf);
-      return matchQ && matchF && matchSeg;
+      return matchQ && matchF;
     });
 
     if(!items.length){ materialList.innerHTML = `<div class="hint">Keine Einträge.</div>`; return; }
@@ -911,7 +863,6 @@ ${p.title}
       const card = document.createElement("div");
       card.className = "card";
       const donePill = it.done ? `<span class="pill good">✅ erledigt</span>` : `<span class="pill warn">⬜️ offen</span>`;
-      const segPill = `<span class="pill">Abschnitt: <b class="goldText">${escapeHtml(segLabel(it.seg||"ALL"))}</b></span>`;
       card.innerHTML = `
         <div class="cardhead">
           <div style="min-width:0">
@@ -920,7 +871,7 @@ ${p.title}
               Menge: <b class="goldText">${fmt(toNum(it.qty,0))}</b> ${escapeHtml(it.unit||"")}
               ${it.note ? ` • ${escapeHtml(it.note)}` : ``}
             </div>
-            <div class="meta">${segPill}</div>
+            
           </div>
           <div class="btnbar" style="flex:0 0 auto;">
             <button class="btn small">${it.done ? "↩︎" : "✅"}</button>
@@ -928,7 +879,7 @@ ${p.title}
           </div>
         </div>
         <div class="sep"></div>
-        <div class="grid3">
+        <div class="grid2">
           <div>
             <label>Menge</label>
             <input inputmode="decimal" value="${escapeAttr(fmt(toNum(it.qty,0)))}" />
@@ -939,13 +890,7 @@ ${p.title}
               ${["Stk","m","Sack","Paket","Palette","Kg","L","m³"].map(u => `<option ${u===(it.unit||"Stk")?"selected":""}>${u}</option>`).join("")}
             </select>
           </div>
-          <div>
-            <label>Abschnitt</label>
-            <select>
-              ${["ALL","A","B","C","D","E","F"].map(s => `<option value="${s}" ${segLabel(it.seg||"ALL")===s?"selected":""}>${s==="ALL"?"ALL / allg.":s}</option>`).join("")}
-            </select>
           </div>
-        </div>
         <div style="margin-top:10px;">
           <label>Notiz</label>
           <input value="${escapeAttr(it.note||"")}" placeholder="optional" />
@@ -968,13 +913,11 @@ ${it.name}`)) return;
       const qtyInp = card.querySelectorAll("input")[0];
       const noteInp = card.querySelectorAll("input")[1];
       const unitSel = card.querySelectorAll("select")[0];
-      const segSel = card.querySelectorAll("select")[1];
 
-      [qtyInp, noteInp, unitSel, segSel].forEach(ctrl => {
+      [qtyInp, noteInp, unitSel].forEach(ctrl => {
         ctrl.addEventListener("change", () => {
           it.qty = toNum(qtyInp.value, 0);
           it.unit = unitSel.value;
-          it.seg = segSel.value;
           it.note = noteInp.value.trim();
           saveState();
         });
@@ -1011,6 +954,8 @@ fillHeights();
   const planLength = document.getElementById("planLength");
   const planHeight = document.getElementById("planHeight");
   const planSystem = document.getElementById("planSystem");
+  const planColor = document.getElementById("planColor");
+  const planWoodType = document.getElementById("planWoodType");
   const planSlopeType = document.getElementById("planSlopeType");
   const planSlopePct = document.getElementById("planSlopePct");
   const planCorners = document.getElementById("planCorners");
@@ -1058,14 +1003,14 @@ fillHeights();
   planCornersPlus?.addEventListener("click", () => { setCorners(cornersVal()+1); persistPlanFromUI(); });
   planCorners?.addEventListener("change", () => { setCorners(cornersVal()); persistPlanFromUI(); });
 
-  [planLength, planHeight, planSystem, planSlopeType, planSlopePct, planConcreteValue, planBagger, planRamme, planHaenger].forEach(x => {
+  [planLength, planHeight, planSystem, planColor, planWoodType, planSlopeType, planSlopePct, planConcreteValue, planBagger, planRamme, planHaenger].forEach(x => {
     x?.addEventListener("change", () => persistPlanFromUI());
     x?.addEventListener("input", () => persistPlanFromUI());
   });
 
   function ensurePlan(p){
     if(!p.plan){
-      p.plan = { length:"", height:160, system:"Doppelstab", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" };
+      p.plan = { length:"", height:160, system:"Doppelstab", color:"Anthrazit (RAL 7016)", woodType:"", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" };
     }
   }
 
@@ -1076,6 +1021,8 @@ fillHeights();
     p.plan.length = (planLength?.value ?? "").trim();
     p.plan.height = Number(planHeight?.value) || 160;
     p.plan.system = planSystem?.value || "Doppelstab";
+    p.plan.color = planColor?.value || "Anthrazit (RAL 7016)";
+    p.plan.woodType = planWoodType?.value || "";
     p.plan.slopeType = planSlopeType?.value || "flat";
     p.plan.slopePct = (planSlopePct?.value ?? "").trim();
     p.plan.corners = cornersVal();
@@ -1100,6 +1047,8 @@ fillHeights();
     if(planLength) planLength.value = p.plan.length || "";
     if(planHeight) planHeight.value = String(p.plan.height || 160);
     if(planSystem) planSystem.value = p.plan.system || "Doppelstab";
+    if(planColor) planColor.value = p.plan.color || "Anthrazit (RAL 7016)";
+    if(planWoodType) planWoodType.value = p.plan.woodType || "";
     if(planSlopeType) planSlopeType.value = p.plan.slopeType || "flat";
     if(planSlopePct) planSlopePct.value = p.plan.slopePct || "";
     setCorners(p.plan.corners || 0);
@@ -1120,7 +1069,7 @@ fillHeights();
   btnPlanClear?.addEventListener("click", () => {
     const p = currentProject();
     if(!p) return;
-    p.plan = { length:"", height:160, system:"Doppelstab", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" };
+    p.plan = { length:"", height:160, system:"Doppelstab", color:"Anthrazit (RAL 7016)", woodType:"", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" };
     loadPlanToUI();
     saveState();
     toast("Planung geleert", "");
@@ -1150,34 +1099,29 @@ fillHeights();
     const cornerPosts = corners;
     const strips = posts + corners; // Eckpfosten brauchen 2 Leisten -> +1 extra pro Ecke
 
-    upsertItem(p, systemMatName(p.plan.system || "Doppelstab", p.plan.height), panels, "Stk", "Schnell‑Planung", "ALL");
-    upsertItem(p, "Pfosten (Planung)", posts, "Stk", "1 mehr als Matten", "ALL");
-    upsertItem(p, "Pfostenleisten (Planung)", strips, "Stk", "1 pro Pfosten, Eckpfosten +1", "ALL");
+    upsertItem(p, systemMatName(p.plan.system || "Doppelstab", p.plan.height), panels, "Stk", "Schnell‑Planung");
+    upsertItem(p, "Pfosten (Planung)", posts, "Stk", "1 mehr als Matten");
+    upsertItem(p, "Pfostenleisten (Planung)", strips, "Stk", "1 pro Pfosten, Eckpfosten +1");
     if(cornerPosts > 0){
-      upsertItem(p, "Eckpfosten (Planung)", cornerPosts, "Stk", "1 pro Ecke", "ALL");
+      upsertItem(p, "Eckpfosten (Planung)", cornerPosts, "Stk", "1 pro Ecke");
     }
 
     const cmode = p.plan.concreteMode || "sacks";
     const cval = (p.plan.concreteValue || "").trim();
     if(cval){
       if(cmode === "m3"){
-        upsertItem(p, "Beton (Fertigbeton)", toNum(cval, 0), "m³", "Schnell‑Planung", "ALL");
+        upsertItem(p, "Beton (Fertigbeton)", toNum(cval, 0), "m³", "Schnell‑Planung");
       }else{
-        upsertItem(p, "Beton (Säcke)", toNum(cval, 0), "Sack", "Schnell‑Planung", "ALL");
+        upsertItem(p, "Beton (Säcke)", toNum(cval, 0), "Sack", "Schnell‑Planung");
       }
     }
 
     const slopeTypeTxt = ({flat:"gerade", slope:"abschüssig", hang:"am Hang", steep:"steil"})[p.plan.slopeType] || "gerade";
-    const slopePctTxt = (p.plan.slopePct||"").trim() ? ` (${(p.plan.slopePct||"").trim()}%)` : "";
-    upsertItem(p, "Gelände / Neigung", 1, "Stk", `${slopeTypeTxt}${slopePctTxt}`, "ALL");
-
-    const eq = [];
+    const slopePctTxt = (p.plan.slopePct||"").trim() ? ` (${(p.plan.slopePct||"").trim()}%)` : "";const eq = [];
     if((p.plan.bagger||"no")==="yes") eq.push("Bagger");
     if((p.plan.ramme||"no")==="yes") eq.push("Ramme");
     if((p.plan.haenger||"no")==="yes") eq.push("Hänger");
-    if(eq.length){
-      upsertItem(p, "Geräte", 1, "Stk", eq.join(", "), "ALL");
-    }
+    if(eq.length){}
 
     toast("Übernommen", "Planung → Materialliste");
     saveState();
@@ -1281,7 +1225,7 @@ fillHeights();
               <span class="pill">Matten <b class="goldText mono">${r.panels}</b> • Pfosten <b class="goldText mono">${r.posts}</b></span>
             </summary>
             <div class="sep"></div>
-            <div class="grid3">
+            <div class="grid2">
               <div>
                 <label>Name</label>
                 <input value="${escapeAttr(seg.title||"")}" placeholder="A–F" />
@@ -1335,7 +1279,7 @@ ${seg.title||"—"}`)) return;
         card.querySelector("[data-addmat]").addEventListener("click", () => {
           setTab("materials");
           mSeg.value = segLabel(seg.title||"ALL");
-          materialSegFilter.value = segLabel(seg.title||"ALL");
+          /*segFilterRemoved*/.value = segLabel(seg.title||"ALL");
           toast("Material", `Abschnitt ${segLabel(seg.title||"")}`);
         });
 
@@ -1351,15 +1295,15 @@ ${seg.title||"—"}`)) return;
     `;
   }
 
-  function upsertItem(project, name, qty, unit, note, seg="ALL"){
-    const key = (name||"").toLowerCase() + "|" + segLabel(seg);
-    const it = (project.items||[]).find(x => ((x.name||"").toLowerCase() + "|" + segLabel(x.seg||"ALL")) === key);
+  function upsertItem(project, name, qty, unit, note){
+    const key = (name||"").toLowerCase();
+    const it = (project.items||[]).find(x => ((x.name||"").toLowerCase()) === key);
     if(it){
       it.qty = Number(qty) || 0;
       it.unit = unit;
       if(note) it.note = note;
     }else{
-      project.items.unshift({ id: uid(), name, qty: Number(qty)||0, unit, note: note||"", seg: segLabel(seg), done:false, createdAt: nowISO() });
+      project.items.unshift({ id: uid(), name, qty: Number(qty)||0, unit, note: note||"", seg:"ALL", done:false, createdAt: nowISO() });
     }
   }
 
@@ -1369,9 +1313,9 @@ ${seg.title||"—"}`)) return;
     if(!p.segments.length){ toast("Keine Abschnitte", "Erst Abschnitte anlegen."); return; }
     const sums = calcSums(p.segments, defaultPanelW());
 
-    upsertItem(p, "Matten 2,50m (Summe)", sums.panels, "Stk", "aus Abschnitten", "ALL");
-    upsertItem(p, "Pfosten (Summe)", sums.posts, "Stk", "aus Abschnitten", "ALL");
-    upsertItem(p, "Pfostenleisten (Summe)", sums.strips, "Stk", "1 pro Pfosten", "ALL");
+    upsertItem(p, "Matten 2,50m (Summe)", sums.panels, "Stk", "aus Abschnitten");
+    upsertItem(p, "Pfosten (Summe)", sums.posts, "Stk", "aus Abschnitten");
+    upsertItem(p, "Pfostenleisten (Summe)", sums.strips, "Stk", "1 pro Pfosten");
 
     toast("Übernommen", "Summen → Materialliste");
     saveState();
@@ -1395,7 +1339,7 @@ ${seg.title||"—"}`)) return;
     if(p.plan){
       const slopeTxt = ({flat:"gerade", slope:"abschüssig", hang:"am Hang", steep:"steil"})[p.plan.slopeType] || "gerade";
       const pct = (p.plan.slopePct||"").trim();
-      lines.push(`Planung: Länge ${p.plan.length||"—"} m • Höhe ${(p.plan.height||"—")} cm • System ${p.plan.system||"—"}`);
+      lines.push(`Planung: Länge ${p.plan.length||"—"} m • Höhe ${(p.plan.height||"—")} cm • System ${p.plan.system||"—"} • Farbe ${p.plan.color||"—"}${(p.plan.system==="Holz" && p.plan.woodType)?(" • Holzart "+p.plan.woodType):""}`);
       lines.push(`Gelände: ${slopeTxt}${pct?` (${pct}%)`:``} • Ecken: ${p.plan.corners ?? 0}`);
       const eq = [];
       if((p.plan.bagger||"no")==="yes") eq.push("Bagger");
@@ -1527,7 +1471,7 @@ ${seg.title||"—"}`)) return;
         addressSite: "",
         items: [{ id: uid(), name:"Anschlussleisten", qty:0, unit:"Stk", note:"manuell", seg:"ALL", done:false, createdAt: nowISO() }],
         segments: [{ id: uid(), title:"A", length:10.0, height:160 }],
-        plan: { length:"10", height:160, system:"Doppelstab", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" }
+        plan: { length:"10", height:160, system:"Doppelstab", color:"Anthrazit (RAL 7016)", woodType:"", slopeType:"flat", slopePct:"", corners:0, concreteMode:"sacks", concreteValue:"", bagger:"no", ramme:"no", haenger:"no" }
       };
       state.projects.unshift(demo);
       state.selectedProjectId = demo.id;
