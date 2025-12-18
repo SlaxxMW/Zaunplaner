@@ -1,22 +1,13 @@
 {
   "name": "Zaunteam Zaunplaner",
   "short_name": "Zaunplaner",
-  "start_url": "/zaunplaner/",
-  "scope": "./",
+  "start_url": "/Zaunplaner/",
+  "scope": "/Zaunplaner/",
   "display": "standalone",
   "background_color": "#f2f2f2",
   "theme_color": "#f2f2f2",
-  "description": "Zaunteam Zaunplaner – Material, Chef/Kunde, WhatsApp/E-Mail Flows.",
   "icons": [
-    {
-      "src": "./icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "./icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "/Zaunplaner/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/Zaunplaner/icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
