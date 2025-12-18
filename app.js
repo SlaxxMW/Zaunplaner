@@ -65,7 +65,7 @@
   function blankProject(name) {
     return {
       id: uid(),
-      title: name || "Neues Projekt",
+      title: name || "Neuer Kunde",
       createdAt: nowISO(),
       plannedDate: "",
       phone: "",
@@ -158,7 +158,7 @@
 
   function updateStatusPill() {
     const p = currentProject();
-    el("statusPill").textContent = p ? (`aktiv: ${p.title} • ${p.status}`) : "kein Projekt";
+    el("statusPill").textContent = p ? (`aktiv: ${p.title} • ${p.status}`) : "kein Kunde";
     const vp = el("verPill");
     if(vp) {
       vp.textContent = "v" + (state && state.version ? state.version : "—");
@@ -236,7 +236,7 @@
   }
 
   el("btnAdd").addEventListener("click", ()=>{
-    const name=(pName.value||"").trim() || "Neues Projekt";
+    const name=(pName.value||"").trim() || "Neuer Kunde";
     const p = blankProject(name);
     if(pCreated && (pCreated.value||"").trim()) p.createdAt = (pCreated.value.trim()+"T12:00:00.000Z");
     p.plannedDate = pDate.value || "";
@@ -248,7 +248,7 @@
     state.selectedProjectId = p.id;
     pName.value=""; if(pCreated) pCreated.value=""; pDate.value=""; pPhone.value=""; if(pEmail) pEmail.value=""; pAddr.value=""; pObj.value="";
     save(); refreshAll();
-    toast("Projekt erstellt", p.title);
+    toast("Kunde erstellt", p.title);
     setTab("kunde");
   });
 
@@ -269,7 +269,7 @@
 
   el("btnDel").addEventListener("click", ()=>{
     const p=currentProject(); if(!p) return;
-    if(!confirm(`Projekt wirklich löschen?
+    if(!confirm(`Kunde wirklich löschen?
 
 ${p.title}`)) return;
     state.projects = state.projects.filter(x=>x.id!==p.id);
@@ -767,7 +767,10 @@ ${p.title}`)) return;
   async function shareInternWithPhotos(p){
     const text = chefWhatsText(p);
     const ph = (p && p.chef && Array.isArray(p.chef.photos)) ? p.chef.photos : [];
-    // 1) Mobile/Share-Sheet: Text + Fotos (WhatsApp auswählbar)
+
+    // Wenn Fotos vorhanden sind: iPhone/iPad Share-Sheet nutzen (Fotos teilen),
+    // ABER Text vorher in die Zwischenablage kopieren, weil WhatsApp bei "Text+Files"
+    // manchmal nicht in der Auswahl erscheint.
     if(ph.length && navigator.share){
       try{
         const files = [];
@@ -777,19 +780,23 @@ ${p.title}`)) return;
           if(!x || !x.dataUrlSmall) continue;
           const rawName = x.name || `Foto_${i+1}.jpg`;
           const safeName = String(rawName).replace(/[\\/:*?"<>|]+/g,"_");
+          // WhatsApp mag am zuverlässigsten echte JPG/PNG; type kommt aus x.type
           files.push(await dataUrlToFile(x.dataUrlSmall, safeName, x.type));
         }
+
         if(files.length && (!navigator.canShare || navigator.canShare({ files }))){
-          await navigator.share({ title:"Intern", text, files });
+          // Text kopieren (dann in WhatsApp einfügen)
+          try{ await navigator.clipboard.writeText(text); }catch(_){}
+          await navigator.share({ title:"Intern Fotos", files });
+          toast("Fotos teilen", "Text ist kopiert → in WhatsApp einfügen");
           return;
         }
       }catch(e){}
     }
-    // 2) Desktop: WhatsApp Web mit Text öffnen (Fotos lassen sich dort nicht automatisch anhängen)
+
+    // Desktop/Browser-Fallback: WhatsApp Web mit Text öffnen (Fotos lassen sich dort nicht automatisch anhängen)
     if(openWhatsAppText(text)){
-      // Text kopieren, damit du ihn direkt in WhatsApp einfügen kannst
       try{ await navigator.clipboard.writeText(text); }catch(_){}
-      // Fotos als ZIP bereitstellen (manuell in WhatsApp Desktop/Web anhängen)
       if(ph.length){
         try{ await downloadInternPhotosZip(p); }catch(_){}
         toast("WhatsApp geöffnet", "Text kopiert + Fotos.zip geladen (bitte manuell anhängen)");
@@ -798,9 +805,10 @@ ${p.title}`)) return;
       }
       return;
     }
-    // 3) Fallback: Kopieren/Prompt
+
+    // Letzter Fallback
     await shareText(text, "Intern");
-    if(ph.length) toast("Hinweis", "Fotos: Backup.json enthält sie (WhatsApp-Text ist kopiert).");
+    if(ph.length) toast("Hinweis", "Fotos sind im Backup.json enthalten (WhatsApp‑Text ist kopiert).");
   }
 
   async function shareCustomerToWhatsApp(p){
@@ -1394,8 +1402,8 @@ ${p.title}`)) return;
     downloadText(JSON.stringify(data,null,2), "Zaunplaner_Backup.json", "application/json");
   });
   el("btnCSV").addEventListener("click", ()=>{
-    const p=currentProject(); if(!p) return toast("Kein Projekt");
-    const rows=[["Projekt","Datum","Material","Menge","Einheit","Notiz"]].concat((p.chef.materials||[]).map(it=>[p.title,p.plannedDate||"",it.name||"",String((it.qty!=null)?it.qty:""),it.unit||"",it.note||""]));
+    const p=currentProject(); if(!p) return toast("Kein Kunde");
+    const rows=[["Kundenname","Datum","Material","Menge","Einheit","Notiz"]].concat((p.chef.materials||[]).map(it=>[p.title,p.plannedDate||"",it.name||"",String((it.qty!=null)?it.qty:""),it.unit||"",it.note||""]));
     const csv=rows.map(r=>r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(";")).join("\n");
     downloadText(csv, fileSafe(`${p.title}_Material.csv`), "text/csv");
   });
