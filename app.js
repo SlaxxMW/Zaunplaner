@@ -60,9 +60,9 @@
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-    const APP_VERSION = "1.4.20";
+    const APP_VERSION = "1.4.22";
   const APP_BUILD = "2025-12-19";
-let state = { version:"1.4.20", selectedProjectId:null, projects:[] };
+let state = { version:"1.4.22", selectedProjectId:null, projects:[] };
 
   function blankProject(name) {
     return {
@@ -162,10 +162,10 @@ let state = { version:"1.4.20", selectedProjectId:null, projects:[] };
     const p = currentProject();
     el("statusPill").textContent = p ? (`aktiv: ${p.title} • ${p.status}`) : "kein Kunde";
     const vp = el("verPill");
-    if(vp) {
-      vp.textContent = "v" + (state && state.version ? state.version : APP_VERSION);
-      vp.title = "Zaunplaner " + (state && state.version ? state.version : APP_VERSION) + " • Build " + APP_BUILD;
-      vp.title = "Zaunplaner Version";
+    if(vp){
+      const v = (state && state.version) ? state.version : APP_VERSION;
+      vp.textContent = "v" + v;
+      vp.title = "Zaunplaner v" + v + " • Build " + APP_BUILD;
     }
   }
 
@@ -174,8 +174,27 @@ let state = { version:"1.4.20", selectedProjectId:null, projects:[] };
     document.querySelectorAll(".tabBtn").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
     document.querySelectorAll(".panel.tab").forEach(p=>p.style.display = (p.dataset.tab===name) ? "" : "none");
   }
+  // Kunde UI: Liste <-> Bearbeiten
+  function showCustomerList(){
+    const lv=el("kundenListView"), ev=el("kundenEditView");
+    if(lv) lv.style.display="block";
+    if(ev) ev.style.display="none";
+    // Auswahl zurücksetzen
+    state.selectedProjectId = null;
+    if(projSel) projSel.value="";
+    save(); refreshHeader();
+  }
+  function showCustomerEdit(){
+    const lv=el("kundenListView"), ev=el("kundenEditView");
+    if(lv) lv.style.display="none";
+    if(ev) ev.style.display="block";
+    refreshHeader();
+  }
+
+
   document.querySelectorAll(".tabBtn").forEach(b=>b.addEventListener("click", ()=> setTab(b.dataset.tab)));
   setTab("kunde");
+  showCustomerList();
 
   // Fill
   function fillHeights(sel, heights=DEFAULT_HEIGHTS) {
@@ -205,10 +224,18 @@ let state = { version:"1.4.20", selectedProjectId:null, projects:[] };
 
   function refreshProjectSelectors() {
     const list=[...state.projects];
-    if(sortSel.value==="name") list.sort((a,b)=>(a.title||"").localeCompare(b.title||"","de"));
-    if(sortSel.value==="date") list.sort((a,b)=>(a.plannedDate||"9999-12-31").localeCompare(b.plannedDate||"9999-12-31"));
-    if(sortSel.value==="created") list.sort((a,b)=>(a.createdAt||"").localeCompare(b.createdAt||""));
-    projSel.innerHTML="";
+    // sort
+    if(sortSel && sortSel.value==="name") list.sort((a,b)=>(a.title||"").localeCompare(b.title||"","de"));
+    if(sortSel && sortSel.value==="date") list.sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+    if(sortSel && sortSel.value==="status") list.sort((a,b)=>(a.status||"").localeCompare(b.status||"","de"));
+
+    // Dropdown füllen
+    projSel.innerHTML = "";
+    const o0=document.createElement("option");
+    o0.value="";
+    o0.textContent="— Kunden auswählen —";
+    projSel.appendChild(o0);
+
     list.forEach(p=>{
       const o=document.createElement("option");
       o.value=p.id;
@@ -216,27 +243,10 @@ let state = { version:"1.4.20", selectedProjectId:null, projects:[] };
       projSel.appendChild(o);
     });
     projSel.value = state.selectedProjectId || "";
-    projCards.innerHTML="";
-    list.forEach(p=>{
-      const div=document.createElement("div");
-      div.className="card";
-      div.innerHTML = `
-        <div class="cardTitle">
-          <b>${escapeHtml(p.title)}</b>
-          <span class="pill ${p.status==="Freigegeben"?"good":""}">${escapeHtml(p.status||"Entwurf")}</span>
-        </div>
-        <div class="meta">Erstellt: ${(p.createdAt||"").slice(0,10)||"—"} • Ausführung: ${p.plannedDate||"—"}</div>
-        <div class="meta">Tel: ${escapeHtml(p.phone||"—")} • Kunde: ${escapeHtml(p.addr||"—")}</div>
-      `;
-      div.addEventListener("click", ()=>{
-        state.selectedProjectId = p.id;
-        save(); refreshAll();
-        setTab("kunde");
-        setTimeout(()=>el("kLen").focus(), 120);
-      });
-      projCards.appendChild(div);
-    });
-    projCountPill.textContent = String(state.projects.length);
+
+    // Kartenliste aus (wir nutzen Dropdown)
+    if(projCards) projCards.innerHTML="";
+    if(projCountPill) projCountPill.textContent = String(state.projects.length);
   }
 
   el("btnAdd").addEventListener("click", ()=>{
@@ -251,9 +261,11 @@ let state = { version:"1.4.20", selectedProjectId:null, projects:[] };
     state.projects.unshift(p);
     state.selectedProjectId = p.id;
     pName.value=""; if(pCreated) pCreated.value=""; pDate.value=""; pPhone.value=""; if(pEmail) pEmail.value=""; pAddr.value=""; pObj.value="";
+    state.selectedProjectId = p.id;
     save(); refreshAll();
+    showCustomerEdit();
     toast("Kunde erstellt", p.title);
-    setTab("kunde");
+    setTimeout(()=>{ try{ el("kLen").focus(); }catch(_){} }, 120);
   });
 
   if(el("btnCall")){
@@ -286,9 +298,28 @@ ${p.title}`)) return;
   projSel.addEventListener("change", ()=>{
     state.selectedProjectId = projSel.value || null;
     save(); refreshAll();
+    if(state.selectedProjectId) showCustomerEdit(); else showCustomerList();
   });
 
-  // Kunde
+
+  const btnOpenCustomer = el("btnOpenCustomer");
+  const btnBackToList = el("btnBackToList");
+  if(btnOpenCustomer){
+    btnOpenCustomer.addEventListener("click", ()=>{
+      const id = (projSel && projSel.value) ? projSel.value : "";
+      if(!id){ toast("Hinweis","Bitte erst einen Kunden auswählen"); return; }
+      state.selectedProjectId = id;
+      save(); refreshAll();
+      showCustomerEdit();
+      setTimeout(()=>{ try{ el("kLen").focus(); }catch(_){} }, 120);
+    });
+  }
+  if(btnBackToList){
+    btnBackToList.addEventListener("click", ()=>{
+      showCustomerList();
+    });
+  }
+// Kunde
   const kCreated=el("kCreated"), kPlanned=el("kPlanned"), kPhone=el("kPhone"), kEmail=el("kEmail");
   const kLen=el("kLen"), kHeight=el("kHeight"), kSystem=el("kSystem"), kColor=el("kColor"), kPrivacy=el("kPrivacy"), kPrivacyLen=el("kPrivacyLen"), kWood=el("kWood"), kWpc=el("kWpc");
   const kSlopeType=el("kSlopeType"), kSlopePct=el("kSlopePct"), kCorners=el("kCorners"), kConcreteMode=el("kConcreteMode"), kConcreteVal=el("kConcreteVal"), kNote=el("kNote");
@@ -1478,6 +1509,8 @@ ${p.title}`)) return;
     refreshCustomerUI();
     refreshChefUI();
     updateStatusPill();
+    // View mode
+    if(state.selectedProjectId) showCustomerEdit(); else showCustomerList();
   }
 
   // init

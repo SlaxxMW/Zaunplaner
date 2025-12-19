@@ -318,77 +318,81 @@
 
     <!-- KUNDE/PROJEKT (vereint) -->
     <section class="panel tab" data-tab="kunde">
-      <h2>👤 Kunde / Projekt</h2>
-
-      <div class="grid3">
-        <div>
-          <label>Kundenname</label>
-          <input id="pName" placeholder="Neuer Kunde" />
-        </div>
-        <div>
-          <label>Erstellt</label>
-          <input id="pCreated" type="date" />
-        </div>
-        <div>
-          <label>Ausführung</label>
-          <input id="pDate" type="date" />
-        </div>
+      <div class="cardTitle">
+        <h2>👤 Kunden</h2>
+        <span class="pill" id="projCountPill">0</span>
       </div>
 
-      <div class="grid3">
-        <div>
-          <label>Telefon</label>
-          <input id="pPhone" inputmode="tel" placeholder="+49 …" />
-        </div>
-        <div>
-          <label>E‑Mail</label>
-          <input id="pEmail" inputmode="email" placeholder="kunde@email.de" />
-        </div>
-        <div>
-          <label>Sortierung</label>
-          <select id="sortSel">
-            <option value="created">Erstellt</option>
-            <option value="date">Ausführung</option>
-            <option value="name">Name</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div>
-          <label>Kundenadresse</label>
-          <input id="pAddr" placeholder="Straße, PLZ Ort" />
-        </div>
-        <div>
-          <label>Objektadresse</label>
-          <input id="pObj" placeholder="falls abweichend" />
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:10px;">
-        <button class="btn good dark" id="btnAdd" type="button">+ Kunde anlegen</button>
-        <button class="btn bad" id="btnDel" type="button">Kunde löschen</button>
-        <button class="btn orange" id="btnCall" type="button">📞 anrufen</button>
-        <button class="btn purple" id="btnMail" type="button">✉️ mailen</button>
-      </div>
-
-      <div class="card">
-        <div class="grid2">
-          <div>
-            <label>Kunde auswählen</label>
-            <select id="projSel"></select>
+      <!-- LIST VIEW -->
+      <div id="kundenListView">
+        <div class="card">
+          <div class="row">
+            <div style="flex:1;">
+              <label>Kunde auswählen</label>
+              <select id="projSel"></select>
+            </div>
+            <div style="display:flex; gap:8px; align-items:flex-end;">
+              <button id="btnOpenCustomer" class="btn green" type="button">Öffnen</button>
+              <button id="btnAdd" class="btn dark" type="button">+ Neuer Kunde</button>
+            </div>
           </div>
-          <div class="hint" style="align-self:end;">
-            Tipp: Projektkarte anklicken → springt zu „Kunde“.
+
+          <div class="row" style="margin-top:10px;">
+            <div style="flex:1;">
+              <label>Kundenname (für Neu)</label>
+              <input id="pName" placeholder="Neuer Kunde" />
+            </div>
+          </div>
+
+          <details style="margin-top:10px;">
+            <summary style="cursor:pointer; font-weight:900;">Optionale Basisdaten (bei Neu)</summary>
+            <div class="row" style="margin-top:10px;">
+              <div style="flex:1;">
+                <label>Erstellt (optional)</label>
+                <input id="pCreated" type="date" />
+              </div>
+              <div style="flex:1;">
+                <label>Ausführung (optional)</label>
+                <input id="pDate" type="date" />
+              </div>
+            </div>
+            <div class="row" style="margin-top:10px;">
+              <div style="flex:1;">
+                <label>Telefon (optional)</label>
+                <input id="pPhone" placeholder="+49..." />
+              </div>
+              <div style="flex:1;">
+                <label>E‑Mail (optional)</label>
+                <input id="pEmail" placeholder="mail@..." />
+              </div>
+            </div>
+            <div class="row" style="margin-top:10px;">
+              <div style="flex:1;">
+                <label>Adresse Kunde (optional)</label>
+                <input id="pAddr" placeholder="Straße, PLZ Ort" />
+              </div>
+              <div style="flex:1;">
+                <label>Objektadresse (optional)</label>
+                <input id="pObj" placeholder="falls abweichend" />
+              </div>
+            </div>
+          </details>
+
+          <div class="hint" style="margin-top:10px;">
+            Tipp: Wähle einen Kunden im Dropdown → „Öffnen“. Im Bearbeiten‑Modus wird automatisch gespeichert.
           </div>
         </div>
+
+        <div id="projCards" style="display:none;"></div>
       </div>
 
-      <div id="projCards"></div>
-    </section>
+      <!-- EDIT VIEW -->
+      <div id="kundenEditView" style="display:none;">
+        <div class="row" style="margin-bottom:10px;">
+          <button id="btnBackToList" class="btn blue" type="button">← Zurück zur Kundenliste</button>
+        </div>
 
-    <!-- KUNDE -->
-    <section class="panel tab" data-tab="kunde">
+
       <div class="cardTitle">
         <h2 id="kundeTitle">👤 Kunde</h2>
         <span class="pill" id="kundePill">leer</span>
@@ -535,6 +539,8 @@
         <button class="btn accent green" id="btnKWhats" type="button">WhatsApp Kunde</button>
         <button class="btn orange" id="btnKCall" type="button">📞</button>
         <button class="btn purple" id="btnKMail" type="button">✉️</button>
+      </div>
+    
       </div>
     </section>
 
