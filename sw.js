@@ -1,10 +1,8 @@
-/* Zaunteam Zaunplaner — Service Worker */
-
-const CACHE_VERSION = "v1.0.3"; // bei Updates hochzählen: v1.0.3, v1.0.4 ...
+/* Zaunplaner SW — Auto-Update + Safe Cache (keine Kundendaten löschen) */
+const CACHE_VERSION = "v1.4.20";
 const CACHE_NAME = `zaunplaner-${CACHE_VERSION}`;
 
-// Kern-Dateien (relativ, damit es unter /zaunplaner/ funktioniert)
-const CORE_ASSETS = [
+const CORE = [
   "./",
   "./index.html",
   "./app.js",
@@ -13,10 +11,14 @@ const CORE_ASSETS = [
   "./icon-512.png"
 ];
 
+self.addEventListener("message", (e) => {
+  if (e.data && e.data.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    await cache.addAll(CORE_ASSETS);
+    await cache.addAll(CORE);
     self.skipWaiting();
   })());
 });
@@ -24,38 +26,41 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(
-      keys.map((k) => (k.startsWith("zaunplaner-") && k !== CACHE_NAME) ? caches.delete(k) : null)
-    );
+    await Promise.all(keys.map(k => (k.startsWith("zaunplaner-") && k !== CACHE_NAME) ? caches.delete(k) : null));
     self.clients.claim();
   })());
 });
 
-// Network-first für HTML (Updates), Cache-first für Assets
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // nur same-origin
   if (url.origin !== self.location.origin) return;
 
   const isHTML = req.mode === "navigate" || (req.headers.get("accept") || "").includes("text/html");
+  const isCoreFile =
+    url.pathname.endsWith("/index.html") ||
+    url.pathname.endsWith("/app.js") ||
+    url.pathname.endsWith("/manifest.webmanifest") ||
+    url.pathname.endsWith("/sw.js");
 
-  if (isHTML) {
+  // Always fetch fresh for HTML + core files (updates)
+  if (isHTML || isCoreFile) {
     event.respondWith((async () => {
       try {
-        const fresh = await fetch(req);
+        const fresh = await fetch(req, { cache: "no-store" });
         const cache = await caches.open(CACHE_NAME);
-        cache.put("./index.html", fresh.clone());
+        cache.put(req, fresh.clone());
         return fresh;
       } catch (e) {
         const cache = await caches.open(CACHE_NAME);
-        return (await cache.match("./index.html")) || (await cache.match("./"));
+        return (await cache.match(req)) || (await cache.match("./index.html")) || (await cache.match("./"));
       }
     })());
     return;
   }
 
+  // Cache-first for everything else
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
     const cached = await cache.match(req);
