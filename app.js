@@ -60,9 +60,9 @@
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-    const APP_VERSION = "1.4.22";
+    const APP_VERSION = "1.4.23";
   const APP_BUILD = "2025-12-19";
-let state = { version:"1.4.22", selectedProjectId:null, projects:[] };
+let state = { version:"1.4.23", selectedProjectId:null, projects:[] };
 
   function blankProject(name) {
     return {
@@ -179,9 +179,9 @@ let state = { version:"1.4.22", selectedProjectId:null, projects:[] };
     const lv=el("kundenListView"), ev=el("kundenEditView");
     if(lv) lv.style.display="block";
     if(ev) ev.style.display="none";
-    // Auswahl zurücksetzen
     state.selectedProjectId = null;
-    if(projSel) projSel.value="";
+    const ps = el("projSel");
+    if(ps) ps.value="";
     save(); refreshHeader();
   }
   function showCustomerEdit(){
@@ -229,24 +229,26 @@ let state = { version:"1.4.22", selectedProjectId:null, projects:[] };
     if(sortSel && sortSel.value==="date") list.sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
     if(sortSel && sortSel.value==="status") list.sort((a,b)=>(a.status||"").localeCompare(b.status||"","de"));
 
-    // Dropdown füllen
-    projSel.innerHTML = "";
-    const o0=document.createElement("option");
-    o0.value="";
-    o0.textContent="— Kunden auswählen —";
-    projSel.appendChild(o0);
+    const ps = el("projSel");
+    if(ps){
+      ps.innerHTML = "";
+      const o0=document.createElement("option");
+      o0.value="";
+      o0.textContent="— Kunden auswählen —";
+      ps.appendChild(o0);
 
-    list.forEach(p=>{
-      const o=document.createElement("option");
-      o.value=p.id;
-      o.textContent=`${p.title}${p.plannedDate?(" • "+p.plannedDate):""}`;
-      projSel.appendChild(o);
-    });
-    projSel.value = state.selectedProjectId || "";
+      list.forEach(p=>{
+        const o=document.createElement("option");
+        o.value=p.id;
+        o.textContent=`${p.title}${p.plannedDate?(" • "+p.plannedDate):""}`;
+        ps.appendChild(o);
+      });
+      ps.value = state.selectedProjectId || "";
+    }
 
-    // Kartenliste aus (wir nutzen Dropdown)
     if(projCards) projCards.innerHTML="";
-    if(projCountPill) projCountPill.textContent = String(state.projects.length);
+    const pc = el("projCountPill");
+    if(pc) pc.textContent = String(state.projects.length);
   }
 
   el("btnAdd").addEventListener("click", ()=>{
