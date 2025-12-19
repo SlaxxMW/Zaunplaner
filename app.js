@@ -60,7 +60,9 @@
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-  let state = { version:"1.4.12", selectedProjectId:null, projects:[] };
+    const APP_VERSION = "1.4.20";
+  const APP_BUILD = "2025-12-19";
+let state = { version:"1.4.20", selectedProjectId:null, projects:[] };
 
   function blankProject(name) {
     return {
@@ -92,7 +94,7 @@
     if(stable) {
       try {
         const s = JSON.parse(stable);
-        if(s && Array.isArray(s.projects)) { state = {...state, ...s, version:"1.4.12"}; return; }
+        if(s && Array.isArray(s.projects)) { state = {...state, ...s, version:APP_VERSION}; return; }
       } catch(e){}
     }
     for(const k of LEGACY_KEYS) {
@@ -161,7 +163,8 @@
     el("statusPill").textContent = p ? (`aktiv: ${p.title} • ${p.status}`) : "kein Kunde";
     const vp = el("verPill");
     if(vp) {
-      vp.textContent = "v" + (state && state.version ? state.version : "—");
+      vp.textContent = "v" + (state && state.version ? state.version : APP_VERSION);
+      vp.title = "Zaunplaner " + (state && state.version ? state.version : APP_VERSION) + " • Build " + APP_BUILD;
       vp.title = "Zaunplaner Version";
     }
   }
@@ -172,6 +175,7 @@
     document.querySelectorAll(".panel.tab").forEach(p=>p.style.display = (p.dataset.tab===name) ? "" : "none");
   }
   document.querySelectorAll(".tabBtn").forEach(b=>b.addEventListener("click", ()=> setTab(b.dataset.tab)));
+  setTab("kunde");
 
   // Fill
   function fillHeights(sel, heights=DEFAULT_HEIGHTS) {
@@ -764,7 +768,7 @@ ${p.title}`)) return;
     return new File([blob], filename, { type });
   }
 
-  async async function shareInternWithPhotos(p){
+  async function shareInternWithPhotos(p){
     const text = chefWhatsText(p);
     const ph = (p && p.chef && Array.isArray(p.chef.photos)) ? p.chef.photos : [];
 
@@ -1407,7 +1411,7 @@ ${p.title}`)) return;
 
   // Backup
   el("btnBackup").addEventListener("click", ()=>{
-    const data={ exportedAt: nowISO(), tool:"Zaunteam Zaunplaner", version:"1.4.12", state };
+    const data={ exportedAt: nowISO(), tool:"Zaunteam Zaunplaner", version:APP_VERSION, state };
     downloadText(JSON.stringify(data,null,2), "Zaunplaner_Backup.json", "application/json");
   });
   el("btnCSV").addEventListener("click", ()=>{
@@ -1484,4 +1488,7 @@ ${p.title}`)) return;
   updateConcretePlaceholder();
   if(pCreated && !pCreated.value) pCreated.value = new Date().toISOString().slice(0,10);
   migrateLegacy();
+  // Always keep version current
+  state.version = APP_VERSION;
   refreshAll();
+})();
