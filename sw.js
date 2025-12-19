@@ -1,6 +1,6 @@
 /* Zaunteam Zaunplaner — Service Worker */
 
-const CACHE_VERSION = "v1.0.2"; // bei Updates hochzählen: v1.0.3, v1.0.4 ...
+const CACHE_VERSION = "v1.4.16"; // bei Updates hochzählen: v1.0.3, v1.0.4 ...
 const CACHE_NAME = `zaunplaner-${CACHE_VERSION}`;
 
 // Kern-Dateien (relativ, damit es unter /zaunplaner/ funktioniert)
