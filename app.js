@@ -60,9 +60,9 @@
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-    const APP_VERSION = "1.4.28";
+    const APP_VERSION = "1.4.29";
   const APP_BUILD = "2025-12-19";
-let state = { version:"1.4.28", selectedProjectId:null, projects:[] };
+let state = { version:"1.4.29", selectedProjectId:null, projects:[] };
 
   function blankProject(name) {
     return {
@@ -85,7 +85,13 @@ let state = { version:"1.4.28", selectedProjectId:null, projects:[] };
   }
 
   function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      // safety: keep last known good state to recover from JS bugs/crashes
+      if(state && Array.isArray(state.projects) && state.projects.length){
+        localStorage.setItem(STORAGE_KEY+"_lastgood", JSON.stringify(state));
+      }
+    }catch(e){}
     updateStatusPill();
   }
 
@@ -97,7 +103,21 @@ let state = { version:"1.4.28", selectedProjectId:null, projects:[] };
         if(s && Array.isArray(s.projects)) { state = {...state, ...s, version:APP_VERSION}; return; }
       } catch(e){}
     }
-    for(const k of LEGACY_KEYS) {
+    
+    // Recovery: wenn durch Bug/Crash leer gespeichert wurde, versuche "lastgood" wiederherzustellen
+    try{
+      const lg = localStorage.getItem(STORAGE_KEY+"_lastgood");
+      if(lg){
+        const s2 = JSON.parse(lg);
+        if(s2 && Array.isArray(s2.projects) && s2.projects.length && (!state.projects || !state.projects.length)){
+          state = {...state, ...s2, version:APP_VERSION};
+          // nicht sofort überschreiben – nur anzeigen
+          setTimeout(()=>{ try{ toast("✅ Kunden wiederhergestellt (Backup)"); }catch(e){} }, 50);
+          return;
+        }
+      }
+    }catch(e){}
+for(const k of LEGACY_KEYS) {
       const raw = localStorage.getItem(k);
       if(!raw) continue;
       try {
@@ -302,8 +322,7 @@ ${p.title}`)) return;
     save(); refreshAll();
     toast("Gelöscht");
   });
-
-  sortSel.addEventListener("change", refreshProjectSelectors);
+  if(sortSel) sortSel.addEventListener("change", refreshProjectSelectors);
   projSel.addEventListener("change", ()=>{
     state.selectedProjectId = projSel.value || null;
     save(); refreshAll();
