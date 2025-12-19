@@ -184,6 +184,8 @@
 
     .btn:hover{ transform: translateY(-1px); }
     .btn.bad{ border-color:#f2b6c0; color:var(--bad); }
+    .ph .btn.bad{ background:rgba(229,57,53,.95); color:#fff; border-color:rgba(229,57,53,.65); box-shadow:0 10px 20px rgba(0,0,0,.35); }
+    .ph .btn.bad:hover{ filter:brightness(1.05); }
     .btn.good{ border-color:#bfe6bf; color:var(--good); }
     .btn.accent{ border-color:rgba(200,31,54,.45); background:rgba(200,31,54,.10); }
     .btn.small{ padding:7px 10px; font-size:12px; border-radius:12px; }
@@ -240,10 +242,14 @@
       border:1px dashed var(--line);
       border-radius:16px;
       padding:10px;
-      background:#fafafa;
+      background:linear-gradient(180deg, rgba(31,42,61,.92), rgba(34,49,74,.92));
       min-height:140px;
+      position:relative;
     }
-    .ph img{ width:100%; border-radius:14px; display:block; }
+    .ph img{ width:100%; border-radius:14px; display:block; border:1px solid rgba(255,255,255,.14); box-shadow:0 10px 22px rgba(0,0,0,.35); }
+    .ph input[type=file]{ width:100%; }
+    .ph .cardTitle{ padding:2px 0 4px 0; }
+    .ph .meta{ color:rgba(226,232,240,.92); }
 
     #toast{
       display:none;
@@ -806,7 +812,7 @@
     <option value="200"></option>
   </datalist>
 
-  <script src="./app.js?v=1.4.33" defer></script></script>
+  <script src="./app.js?v=1.4.35" defer></script></script>
 <!-- PWA Service Worker (Auto-Update) -->
   <script>
     if ("serviceWorker" in navigator) {
@@ -821,7 +827,7 @@
 
       try {
         // iOS/PWA: SW URL mit Version -> garantiertes Update
-        reg = await navigator.serviceWorker.register("./sw.js?v=1.4.33", { updateViaCache: "none" });
+        reg = await navigator.serviceWorker.register("./sw.js?v=1.4.35", { updateViaCache: "none" });
 
         // Immer nach Updates suchen
         const doUpdate = () => reg && reg.update().catch(()=>{});

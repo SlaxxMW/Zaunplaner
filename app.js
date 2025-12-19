@@ -60,7 +60,7 @@
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-    const APP_VERSION = "1.4.34";
+    const APP_VERSION = "1.4.35";
   const APP_BUILD = "2025-12-19";
 let state = { version:"1.4.33", selectedProjectId:null, projects:[], meta:{ lastSavedAt:"", lastBackupAt:"" } };
 
@@ -1409,73 +1409,91 @@ function computeTotals(c){
 
   function ensureChefAutoMaterials(p){
     if(!p || !p.customer) return;
-    if(!p.chef) p.chef = { bagger:"no", ramme:"no", handbohr:"no", schubkarre:"no", haenger:"no", note:"", materials:[], photos:[] };
+    if(!p.chef) p.chef = { bagger:"no", ramme:"no", handbohr:"no", schubkarre:"no", haenger:"no", note:"", materials:[], photos:[], hoursPlanned:"", status:"draft" };
     if(!Array.isArray(p.chef.materials)) p.chef.materials = [];
     const c = p.customer;
-    const t = computeTotals(c);
+
+    // Pfostenlänge (einfach/robust): Zaunhöhe + 60 cm (Einbetonierung/Reserve)
+    function postLenCm(h){ h = clampInt(h||160, 60, 300); return clampInt(h + 60, 120, 400); }
+
+    // Segmente aktiv?
+    const segsAll = Array.isArray(c.segments) ? c.segments : [];
+    const segs = segsAll.filter(s=>Math.max(0,toNum(s.length,0))>0);
+
+    // Beton (gesamt)
     let cc = null;
-    try{ cc = computeConcrete(c); }catch(_){}
+    try{ cc = computeConcrete(c); }catch(_{}){}
     const concreteQty = (c.concreteMode==="m3") ? (cc ? cc.m3 : 0) : (cc ? cc.sacks : 0);
     const concreteUnit = (c.concreteMode==="m3") ? "m³" : "Sack";
-    const auto = [
-      // Matten/Elemente: Name soll wie im Chef‑Tab sein (z.B. "Alu‑Elemente 2,50m • 100 cm")
-      { k:"auto_matten", label: sysLabel(c), qty:t.panels||0, unit:"Stk" },
-      { k:"auto_pfosten", label:"Pfosten", qty:t.posts||0, unit:"Stk" },
-      { k:"auto_eckpfosten", label:"Eckpfosten", qty:t.cornerPosts||0, unit:"Stk" },
-      { k:"auto_leisten", label:"Pfostenleisten", qty:t.postStrips||0, unit:"Stk" },
-      { k:"auto_beton", label:"Beton", qty:concreteQty||0, unit:concreteUnit }
-    ];
+
+    // Ecken (gesamt) — Länge nach max. Zaunhöhe
+    const corners = clampInt(c.corners||0, 0, 99);
+    const maxH = segs.length ? Math.max(...segs.map(s=>clampInt(s.height||c.height||160))) : clampInt(c.height||160);
+    const cornerPostLen = postLenCm(maxH);
+
+    const auto = [];
+
+    if(segs.length){
+      for(const s of segs){
+        const label = (s.label||"?").toString();
+        const len = Math.max(0,toNum(s.length,0));
+        const h = clampInt(s.height||c.height||160);
+        const panels = len ? Math.ceil(len / PANEL_W) : 0;
+        const posts = panels ? (panels + 1) : 0;
+
+        const sysObj = { system: (s.system||c.system||"Doppelstab"), height: h };
+        const matLbl = `Abschnitt ${label} — ${sysLabel(sysObj)}`;
+        const pLen = postLenCm(h);
+
+        auto.push({ k:`auto_matten_${label}`, label: matLbl, qty: panels, unit:"Stk" });
+        auto.push({ k:`auto_pfosten_${label}_${pLen}`, label:`Abschnitt ${label} — Pfosten ${pLen} cm`, qty: posts, unit:"Stk" });
+        auto.push({ k:`auto_leisten_${label}`, label:`Abschnitt ${label} — Pfostenleisten`, qty: posts, unit:"Stk" });
+      }
+      if(corners>0){
+        auto.push({ k:`auto_eckpfosten_${cornerPostLen}`, label:`Eckpfosten ${cornerPostLen} cm`, qty: corners, unit:"Stk" });
+        auto.push({ k:`auto_leisten_ecken`, label:`Pfostenleisten (Ecken)`, qty: corners, unit:"Stk" });
+      }
+    }else{
+      const t = computeTotals(c);
+      const pLen = postLenCm(clampInt(c.height||160));
+      auto.push({ k:"auto_matten", label: sysLabel(c), qty:t.panels||0, unit:"Stk" });
+      auto.push({ k:`auto_pfosten_${pLen}`, label:`Pfosten ${pLen} cm`, qty:t.posts||0, unit:"Stk" });
+      auto.push({ k:`auto_eckpfosten_${pLen}`, label:`Eckpfosten ${pLen} cm`, qty:t.cornerPosts||0, unit:"Stk" });
+      auto.push({ k:"auto_leisten", label:"Pfostenleisten", qty:t.postStrips||0, unit:"Stk" });
+    }
+
+    // Beton ist immer gesamt
+    auto.push({ k:"auto_beton", label:"Beton", qty:concreteQty||0, unit:concreteUnit });
+
     const mats = p.chef.materials;
 
     function norm(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9äöüß]+/g," ").trim(); }
 
     const byKey = {};
-    for(let i=0;i<mats.length;i++){
-      const it=mats[i];
-      if(it && it.autoKey && !byKey[it.autoKey]) byKey[it.autoKey]=it;
-    }
+    for(let i=0;i<mats.length;i++){ const it=mats[i]; if(it && it.autoKey && !byKey[it.autoKey]) byKey[it.autoKey]=it; }
 
-    for(let i=0;i<auto.length;i++){
-      const a=auto[i];
+    const autoKeys = {};
+    for(const a of auto) autoKeys[a.k]=true;
+
+    for(const a of auto){
       const want = Number(a.qty)||0;
       let it = byKey[a.k];
 
       if(!it){
-        // Spezial: Matten/Elemente möglichst mit bestehender Zeile zusammenführen
+        // Matten: bestehende Zeile wiederverwenden wenn möglich (nur im NON-Segment Modus)
         if(a.k==="auto_matten"){
-          for(let j=0;j<mats.length;j++){
-            const x=mats[j];
-            if(!x || x.autoKey) continue;
+          for(let j=0;j<mats.length;j++){ const x=mats[j]; if(!x || x.autoKey) continue;
             if(matCategory(x.name)==="matten"){ it=x; break; }
           }
         }
       }
 
       if(!it){
-        const wantNames = [a.label];
-        if(a.k==="auto_matten"){ wantNames.push("Matten","Matten/Elemente","Elemente"); }
-        if(a.k==="auto_leisten") wantNames.push("Leisten");
-        for(let j=0;j<mats.length;j++){
-          const x=mats[j];
-          if(!x || x.autoKey) continue;
-          const nn = norm(x.name);
-          for(const wn of wantNames){
-            if(nn===norm(wn)){ it=x; break; }
-          }
-          if(it) break;
-        }
-      }
-
-      if(!it){
         if(!want) continue;
         mats.push({ id: uid(), name: a.label, qty: want, unit: a.unit, note:"", autoKey:a.k, override:false });
-      } else {
-        it.autoKey = a.k;
-        if(typeof it.override !== "boolean") it.override = ((it.qty!=="" && it.qty!==null && it.qty!==undefined) && (Number(it.qty||0)!==0) && (Number(it.qty)!=want));
-        it.autoQty = want;
-        it.autoUnit = a.unit;
+      }else{
+        // Wenn nicht überschrieben: automatische Menge aktualisieren
         if(!it.override){
-          // Auto darf Name/Qty/Unit aktualisieren (z.B. Systemwechsel → anderer Matten‑Name)
           it.name = a.label;
           it.qty = want;
           it.unit = a.unit;
@@ -1483,38 +1501,10 @@ function computeTotals(c){
       }
     }
 
-    // Auto-Zeilen entfernen, wenn sie 0 sind und nicht überschrieben wurden
-    p.chef.materials = mats.filter(it=>{
-      if(it && it.autoKey && !it.override && (Number(it.qty)||0)===0) return false;
-      return true;
-    });
+    // Cleanup: alte Auto-Zeilen entfernen, die nicht mehr zu den aktuellen Auto-Keys passen
+    p.chef.materials = (p.chef.materials||[]).filter(x=>!x || !x.autoKey || autoKeys[x.autoKey]);
 
-    // de-dupe autoKey
-    const seen = {};
-    p.chef.materials = p.chef.materials.filter(it=>{
-      if(!it || !it.autoKey) return true;
-      if(seen[it.autoKey]) return false;
-      seen[it.autoKey]=true;
-      return true;
-    });
-
-    // Extra: doppelte Matten/Elemente‑Zeilen entfernen (Alt + Auto), wenn sie offensichtlich identisch sind
-    const mAuto = p.chef.materials.find(x=>x && x.autoKey==="auto_matten");
-    if(mAuto){
-      const autoQtyNum = Number(mAuto.qty)||0;
-      const autoName = norm(mAuto.name);
-      const dupNames = { "matten":1, "matten elemente":1, "matten elemente gesamt":1, "elemente":1 };
-      p.chef.materials = p.chef.materials.filter(x=>{
-        if(!x || x===mAuto) return true;
-        if(x.autoKey) return true;
-        if(matCategory(x.name)!=="matten") return true;
-        const q = Number(x.qty)||0;
-        const nn = norm(x.name);
-        if(nn===autoName && q===autoQtyNum) return false;
-        if(dupNames[nn] && q===autoQtyNum) return false;
-        return true;
-      });
-    }
+    // Kein Speichern hier – wird vom Aufrufer gemacht
   }
 
 // Chef
@@ -1564,6 +1554,8 @@ function computeTotals(c){
     const pill = el("chefSegmentsPill");
     if(!box || !list) return;
 
+    function postLenCm(h){ h=clampInt(h||160,60,300); return clampInt(h+60,120,400); }
+
     const segs = (p && p.customer && Array.isArray(p.customer.segments)) ? p.customer.segments.filter(s=>Math.max(0,toNum(s.length,0))>0) : [];
     if(!segs.length){
       box.style.display = "none";
@@ -1576,8 +1568,10 @@ function computeTotals(c){
     const rows = segs.map(s=>{
       const len = Math.max(0,toNum(s.length,0));
       const panels = len ? Math.ceil(len / PANEL_W) : 0;
+      const posts = panels ? (panels + 1) : 0;
       const ht = s.height || (p.customer.height||160);
       const sys = s.system || (p.customer.system||"Doppelstab");
+      const pLen = postLenCm(ht);
       const col = s.color || (p.customer.color||"");
       const priv = (s.privacy||"no")==="yes";
       return `
