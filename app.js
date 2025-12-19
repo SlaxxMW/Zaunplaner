@@ -60,9 +60,9 @@
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-    const APP_VERSION = "1.4.24";
+    const APP_VERSION = "1.4.25";
   const APP_BUILD = "2025-12-19";
-let state = { version:"1.4.24", selectedProjectId:null, projects:[] };
+let state = { version:"1.4.25", selectedProjectId:null, projects:[] };
 
   function blankProject(name) {
     return {
@@ -1302,6 +1302,13 @@ ${p.title}`)) return;
       const inpQty=row.querySelector("input");
       const selUnit=row.querySelector("select");
       const btnDel=row.querySelector("button");
+
+      // iOS/PWA Safety: falls DOM anders gerendert wurde, nicht crashen
+      if(!inpQty || !selUnit || !btnDel){
+        rows.appendChild(row);
+        return;
+      }
+
       const commit=()=>{
         const p2=currentProject(); if(!p2) return;
         const tgt=(p2.chef.materials||[]).find(x=>x.id===it.id); if(!tgt) return;
