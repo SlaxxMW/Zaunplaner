@@ -414,6 +414,7 @@
         </div>
       </div>
 
+      <div class="cardTitle" style="margin-top:8px;"><h3>🧱 Zaun eingeben</h3></div>
       <div class="grid2">
         <div>
           <label>E‑Mail</label>
@@ -688,13 +689,62 @@
     <option value="200"></option>
   </datalist>
 
-  <script src="./app.js" defer></script></script>
+  <script src="./app.js?v=1.4.26" defer></script></script>
 <!-- PWA Service Worker (Auto-Update) -->
   <script>
     if ("serviceWorker" in navigator) {
-      window.addEventListener("load", async () => {
-        try {
-          const reg = await navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" });
+    window.addEventListener("load", async () => {
+      const updateBar = document.getElementById("updateBar");
+      const btnUpdateNow = document.getElementById("btnUpdateNow");
+      let reg = null;
+
+      const showUpdate = () => {
+        if(updateBar) updateBar.style.display="block";
+      };
+
+      try {
+        // iOS/PWA: SW URL mit Version -> garantiertes Update
+        reg = await navigator.serviceWorker.register("./sw.js?v=1.4.26", { updateViaCache: "none" });
+
+        // Immer nach Updates suchen
+        const doUpdate = () => reg && reg.update().catch(()=>{});
+        doUpdate();
+        setInterval(doUpdate, 10 * 60 * 1000);
+
+        // Wenn schon was wartet: anzeigen
+        if (reg.waiting) showUpdate();
+
+        reg.addEventListener("updatefound", () => {
+          const sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener("statechange", () => {
+            if (sw.state === "installed" && navigator.serviceWorker.controller) {
+              showUpdate();
+            }
+          });
+        });
+
+        // Klick: sofort aktivieren
+        if(btnUpdateNow){
+          btnUpdateNow.addEventListener("click", () => {
+            try {
+              if(reg && reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+              else location.reload();
+            } catch(e) {
+              location.reload();
+            }
+          });
+        }
+
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          // neue Version aktiv -> reload
+          location.reload();
+        });
+      } catch (e) {
+        console.warn("SW register failed", e);
+      }
+    });
+  });
 
           const doUpdate = () => reg.update().catch(()=>{});
           doUpdate();
@@ -723,3 +773,11 @@
   </script>
 </body>
 </html>
+    <div id="updateBar" style="display:none; margin-top:10px;" class="card">
+      <div class="row" style="align-items:center; justify-content:space-between;">
+        <div style="font-weight:900;">🔄 Update verfügbar – jetzt neu laden?</div>
+        <button id="btnUpdateNow" class="btn green" type="button">Jetzt aktualisieren</button>
+      </div>
+      <div class="hint" style="margin-top:8px;">Hinweis: Deine Kunden bleiben erhalten.</div>
+    </div>
+

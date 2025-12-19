@@ -60,9 +60,9 @@
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-    const APP_VERSION = "1.4.25";
+    const APP_VERSION = "1.4.26";
   const APP_BUILD = "2025-12-19";
-let state = { version:"1.4.25", selectedProjectId:null, projects:[] };
+let state = { version:"1.4.26", selectedProjectId:null, projects:[] };
 
   function blankProject(name) {
     return {
