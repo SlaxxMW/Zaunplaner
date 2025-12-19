@@ -268,6 +268,29 @@
     select option{ background:#f8fafc; color:#0f172a; }
     /* Safari/iOS sometimes uses optgroup */
     optgroup{ background:#f8fafc; color:#0f172a; }
+
+    /* Materialliste kompakt (Chef) */
+    #matList details{ border:1px solid var(--line); border-radius:16px; overflow:hidden; background:rgba(255,255,255,.04); }
+    #matList summary{ cursor:pointer; padding:10px 12px; font-weight:900; list-style:none; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    #matList summary::-webkit-details-marker{ display:none; }
+    .matRows{ padding:10px 12px 12px; display:flex; flex-direction:column; gap:8px; }
+    .matRow{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px;
+      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      display:grid;
+      grid-template-columns: 1fr 110px 90px 44px;
+      gap:8px;
+      align-items:center;
+    }
+    .matRow .matName{ font-weight:900; }
+    .matRow input{ padding:8px 10px; border-radius:12px; }
+    .matRow select{ padding:8px 10px; border-radius:12px; }
+    .matRow .btn{ padding:8px 10px; border-radius:12px; }
+    @media (max-width:820px){
+      .matRow{ grid-template-columns: 1fr 110px 90px 44px; }
+    }
 </style>
 </head>
 
@@ -579,67 +602,26 @@
         <div class="grid3" style="margin-top:10px;">
           <div>
             <label>Material</label>
-            <input id="mName" placeholder="z. B. Pfosten 60×40" />
-          </div>
-          <div>
-            <label>Menge</label>
-            <input id="mQty" inputmode="decimal" />
-          </div>
-          <div>
-            <label>Einheit</label>
-            <select id="mUnit">
-              <option>Stk</option>
-              <option>m</option>
-              <option>m²</option>
-              <option>Sack</option>
-              <option>m³</option>
-              <option>Paket</option>
-            </select>
-          </div>
-        </div>
-
-        <label>Notiz</label>
-        <input id="mNote" placeholder="optional" />
-
-        <div class="row" style="margin-top:10px;">
-          <button class="btn good" id="btnAddMat" type="button">+ hinzufügen</button>
-          <button class="btn bad" id="btnClearMat" type="button">Liste leeren</button>
-        </div>
-
-        <div id="matList" style="margin-top:10px;"></div>
-      </div>
-
-      <div class="card">
-        <div class="cardTitle">
-          <b>Fotos</b>
-          <span class="pill" id="photoPill">0</span>
-        </div>
-        <div class="hint" style="margin:8px 0 10px;">
-          Desktop‑WhatsApp kann Fotos nicht automatisch anhängen → nutze „Fotos.zip“.
-        </div>
-        <div id="photoGrid"></div>
-      </div>
-
-      <div class="row" style="margin-top:10px;">
-        <button class="btn accent green" id="btnCWhats" type="button">WhatsApp Intern</button>
-        <button class="btn blue" id="btnCDown" type="button">Intern‑Text Download</button>
-        <button class="btn blue" id="btnCZip" type="button">Fotos.zip</button>
-        <button class="btn purple" id="btnCMail" type="button">E‑Mail (Text)</button>
-      </div>
-    </section>
-
-  </div>
-
-  <div id="toast"></div>
-
-  <datalist id="gateWidthList">
-    <option value="80"></option>
-    <option value="100"></option>
-    <option value="125"></option>
-    <option value="150"></option>
-    <option value="200"></option>
-  </datalist>
-
-  <script src="./app.js" defer></script>
-</body>
-</html>
+            <select id="mName">
+              <optgroup label="Matten / Elemente">
+                <option>Doppelstabmatte</option>
+                <option>Diagonalgeflecht</option>
+                <option>Tornado</option>
+                <option>Elektrozaun</option>
+              </optgroup>
+              <optgroup label="Pfosten">
+                <option>Pfosten</option>
+                <option>Eckpfosten</option>
+              </optgroup>
+              <optgroup label="Leisten / Zubehör">
+                <option>U-Leiste</option>
+                <option>Torleiste</option>
+                <option>Abdeckkappe</option>
+              </optgroup>
+              <optgroup label="Beton">
+                <option>Beton (Sack)</option>
+                <option>Fertigbeton (m³)</option>
+              </optgroup>
+              <optgroup label="Sonstiges">
+                <option value="__custom__">Sonstiges (Freitext)…</option>
+      
