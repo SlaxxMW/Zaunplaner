@@ -764,7 +764,7 @@ ${p.title}`)) return;
     return new File([blob], filename, { type });
   }
 
-  async function shareInternWithPhotos(p){
+  async async function shareInternWithPhotos(p){
     const text = chefWhatsText(p);
     const ph = (p && p.chef && Array.isArray(p.chef.photos)) ? p.chef.photos : [];
 
@@ -1485,4 +1485,3 @@ ${p.title}`)) return;
   if(pCreated && !pCreated.value) pCreated.value = new Date().toISOString().slice(0,10);
   migrateLegacy();
   refreshAll();
-})();
