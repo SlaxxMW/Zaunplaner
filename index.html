@@ -415,6 +415,36 @@
         <span class="pill" id="kundePill">leer</span>
       </div>
       <div id="kundeKpi" class="row" style="margin-top:8px;"></div>
+      <div class="card" style="margin-top:10px;">
+        <div class="cardTitle"><h3>🏠 Adresse Kunde</h3></div>
+        <div class="grid3">
+          <div style="grid-column: span 2;">
+            <label>Straße / Hausnr.</label>
+            <input id="kStreet" placeholder="z.B. Hauptstraße 12" />
+          </div>
+          <div>
+            <label>PLZ</label>
+            <input id="kZip" inputmode="numeric" placeholder="z.B. 10115" />
+            <div class="hint">Ort wird online automatisch ergänzt (sonst manuell).</div>
+          </div>
+          <div style="grid-column: span 2;">
+            <label>Ort</label>
+            <input id="kCity" placeholder="z.B. Berlin" />
+          </div>
+          <div>
+            <label>Land (optional)</label>
+            <input id="kCountry" placeholder="DE" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <div style="flex:1;">
+            <label>Objektadresse / Baustelle (optional)</label>
+            <input id="kObjAddr" placeholder="falls abweichend" />
+          </div>
+        </div>
+        <div class="hint" id="addrBar" style="margin-top:8px;">Adresse: —</div>
+      </div>
+
 
       <div class="grid3">
         
@@ -486,6 +516,29 @@
             <option value="pct">%</option>
           </select>
         </div>
+      <div class="card" style="margin-top:10px;">
+        <div class="cardTitle">
+          <h3>🧩 Zaunabschnitte (A, B, C…)</h3>
+          <span class="pill">unterschiedliche Höhen & Systeme</span>
+        </div>
+
+        <div class="row" style="margin-top:8px; gap:8px; align-items:flex-end;">
+          <div style="flex:0 0 140px;">
+            <label>Neu</label>
+            <select id="segAddLabel"></select>
+          </div>
+          <button id="btnSegAdd" class="btn green" type="button">+ Abschnitt</button>
+          <button id="btnSegCollapseAll" class="btn" type="button">Alle schließen</button>
+          <button id="btnSegExpandAll" class="btn" type="button">Alle öffnen</button>
+        </div>
+
+        <div id="segList" style="margin-top:10px;"></div>
+
+        <div class="hint" style="margin-top:10px;">
+          Tipp: Länge je Abschnitt eintragen. Gesamtlänge wird automatisch summiert.
+        </div>
+      </div>
+
         <div>
           <label>Gefälle %</label>
           <input id="kSlopePct" inputmode="decimal" placeholder="z. B. 2,5" />
@@ -720,6 +773,7 @@
         <button class="btn accent green" id="btnCWhatsText" type="button">Intern Text</button>
         <button class="btn accent green" id="btnCWhatsFotos" type="button">Intern Fotos</button>
         <button class="btn accent green" id="btnCWhats" type="button">Intern Alles</button>
+        <button class="btn accent" id="btnCMaps" type="button">📍 Maps</button>
         <button class="btn blue" id="btnCDown" type="button">Intern‑Text Download</button>
         <button class="btn blue" id="btnCZip" type="button">Fotos.zip</button>
         <button class="btn purple" id="btnCMail" type="button">E‑Mail (Text)</button>
@@ -738,7 +792,7 @@
     <option value="200"></option>
   </datalist>
 
-  <script src="./app.js?v=1.4.32" defer></script></script>
+  <script src="./app.js?v=1.4.33" defer></script></script>
 <!-- PWA Service Worker (Auto-Update) -->
   <script>
     if ("serviceWorker" in navigator) {
@@ -753,7 +807,7 @@
 
       try {
         // iOS/PWA: SW URL mit Version -> garantiertes Update
-        reg = await navigator.serviceWorker.register("./sw.js?v=1.4.32", { updateViaCache: "none" });
+        reg = await navigator.serviceWorker.register("./sw.js?v=1.4.33", { updateViaCache: "none" });
 
         // Immer nach Updates suchen
         const doUpdate = () => reg && reg.update().catch(()=>{});

@@ -60,9 +60,9 @@
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-    const APP_VERSION = "1.4.32";
+    const APP_VERSION = "1.4.33";
   const APP_BUILD = "2025-12-19";
-let state = { version:"1.4.32", selectedProjectId:null, projects:[], meta:{ lastSavedAt:"", lastBackupAt:"" } };
+let state = { version:"1.4.33", selectedProjectId:null, projects:[], meta:{ lastSavedAt:"", lastBackupAt:"" } };
 
   function blankProject(name) {
     return {
@@ -574,11 +574,73 @@ ${p.title}`)) return;
 
   
   // Plausibilitätschecks (damit Demo beim Chef sauber wirkt)
-  function validateProject(p){
+  
+  // Adresse / PLZ→Ort Lookup (DE)
+  const ZIP_CITY_CACHE_KEY = "jsZipCityCache_v1";
+  function getZipCityCache(){
+    try{ return JSON.parse(localStorage.getItem(ZIP_CITY_CACHE_KEY)||"{}")||{}; }catch(e){ return {}; }
+  }
+  function setZipCityCache(cache){
+    try{ localStorage.setItem(ZIP_CITY_CACHE_KEY, JSON.stringify(cache||{})); }catch(e){}
+  }
+  async function lookupCityByZip(zip){
+    zip = String(zip||"").trim();
+    if(!/^[0-9]{5}$/.test(zip)) return "";
+    const cache = getZipCityCache();
+    if(cache[zip]) return cache[zip];
+
+    // 1) zippopotam.us (free)
+    try{
+      const r = await fetch(`https://api.zippopotam.us/DE/${zip}`, { cache:"no-store" });
+      if(r.ok){
+        const j = await r.json();
+        const place = j && j.places && j.places[0];
+        const city = place ? (place["place name"] || "") : "";
+        if(city){
+          cache[zip]=city; setZipCityCache(cache);
+          return city;
+        }
+      }
+    }catch(e){}
+
+    // 2) openplzapi (fallback)
+    try{
+      const r = await fetch(`https://openplzapi.org/de/Localities?postalCode=${zip}`, { cache:"no-store" });
+      if(r.ok){
+        const j = await r.json();
+        const city = (Array.isArray(j) && j[0] && (j[0].name || j[0].localityName)) ? (j[0].name || j[0].localityName) : "";
+        if(city){
+          cache[zip]=city; setZipCityCache(cache);
+          return city;
+        }
+      }
+    }catch(e){}
+    return "";
+  }
+
+  function fullCustomerAddress(p){
+    const street = (p.addrStreet||"").trim();
+    const zip = (p.addrZip||"").trim();
+    const city = (p.addrCity||"").trim();
+    const country = (p.addrCountry||"DE").trim();
+    const parts = [];
+    if(street) parts.push(street);
+    const zc = [zip, city].filter(Boolean).join(" ");
+    if(zc) parts.push(zc);
+    if(country && country.toUpperCase()!=="DE") parts.push(country);
+    return parts.join(", ");
+  }
+
+  function mapsLink(p){
+    const q = ((p.objAddr||"").trim() || fullCustomerAddress(p) || (p.addr||"").trim());
+    if(!q) return "";
+    return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
+  }
+function validateProject(p){
     const issues = [];
     if(!p) { issues.push("Kein Kunde ausgewählt."); return issues; }
     const c = p.customer || {};
-    const len = toNum(c.length, 0);
+    const len = Array.isArray(c.segments)&&c.segments.length ? c.segments.reduce((a,s)=>a+Math.max(0,toNum(s.length,0)),0) : toNum(c.length, 0);
     if(!len || len<=0) issues.push("Zaunlänge fehlt (m).");
     if(!c.height) issues.push("Höhe fehlt.");
     if(!c.system) issues.push("System fehlt.");
@@ -595,7 +657,8 @@ ${p.title}`)) return;
     return false;
   }
 function computeTotals(c){
-    const lengthM=Math.max(0, toNum(c.length,0));
+    const segs = c && Array.isArray(c.segments) ? c.segments : null;
+    const lengthM = Math.max(0, segs ? segs.reduce((a,s)=>a+Math.max(0,toNum(s.length,0)),0) : toNum(c.length,0));
     const panels=lengthM ? Math.ceil(lengthM/PANEL_W) : 0;
     const posts=panels ? (panels+1) : 0;
     const corners=clampInt(c.corners||0);
@@ -605,20 +668,47 @@ function computeTotals(c){
   }
   function computePrivacyRolls(c, totals){
     try{
-      if(!c || (c.privacy||"no")!=="yes") return {rolls:0, rollLen:35, stripsPerPanel:0, panels:0, totalStripM:0, lengthM:0};
+      if(!c) return {rolls:0, rollLen:35, stripsPerPanel:0, panels:0, totalStripM:0, lengthM:0};
+
       const rollLen = clampInt(c.privacyRollLen || 35, 20, 100);
+
+      // Wenn Segmente vorhanden: summiere Sichtschutz je Segment (Höhen können variieren)
+      if(Array.isArray(c.segments) && c.segments.length){
+        let totalStripM = 0;
+        let lengthM = 0;
+        let panelsAll = 0;
+
+        for(const s of c.segments){
+          const segLen = Math.max(0, toNum(s.length,0));
+          const segPriv = (s.privacy||c.privacy||"no")==="yes";
+          if(!segLen){ continue; }
+          lengthM += segLen;
+          const panels = segLen ? Math.ceil(segLen / PANEL_W) : 0;
+          panelsAll += panels;
+          if(!segPriv) continue;
+          const h = Number(s.height||c.height)||160;
+          const stripsPerPanel = Math.max(0, Math.round(h/20)); // 100→5,120→6...
+          totalStripM += panels * stripsPerPanel * PANEL_W;
+        }
+        const rolls = totalStripM ? Math.ceil(totalStripM / rollLen) : 0;
+        return {rolls, rollLen, stripsPerPanel:0, panels:panelsAll, totalStripM, lengthM};
+      }
+
+      // Legacy (ein Abschnitt)
+      if((c.privacy||"no")!=="yes") return {rolls:0, rollLen, stripsPerPanel:0, panels:0, totalStripM:0, lengthM:0};
       const h = Number(c.height)||160;
-      const stripsPerPanel = Math.max(0, Math.round(h/20)); // 100cm→5, 120→6, ...
+      const stripsPerPanel = Math.max(0, Math.round(h/20));
       const baseLen = toNum(c.privacyLen, 0) || (totals && totals.lengthM) || toNum(c.length, 0) || 0;
       const lengthM = Math.max(0, baseLen);
       const panels = lengthM ? Math.ceil(lengthM / PANEL_W) : 0;
-      const totalStripM = panels * stripsPerPanel * PANEL_W; // Meter Sichtschutzstreifen gesamt
+      const totalStripM = panels * stripsPerPanel * PANEL_W;
       const rolls = totalStripM ? Math.ceil(totalStripM / rollLen) : 0;
       return {rolls, rollLen, stripsPerPanel, panels, totalStripM, lengthM};
     }catch(e){
       return {rolls:0, rollLen:35, stripsPerPanel:0, panels:0, totalStripM:0, lengthM:0};
     }
   }
+
 
   function sysLabel(c){
     const h=Number(c.height)||160;
@@ -1679,6 +1769,20 @@ function computeTotals(c){
     toast("Fotos.zip", "geladen – bitte in WhatsApp manuell anhängen");
   });
 
+  // Maps Link senden (Google Maps)
+  const btnCMaps = el("btnCMaps");
+  if(btnCMaps) btnCMaps.addEventListener("click", async ()=>{
+    const p=currentProject(); if(!p) return;
+    const link = mapsLink(p);
+    if(!link){ toast("Maps", "Keine Adresse/Objektadresse hinterlegt."); return; }
+    try{ await navigator.clipboard.writeText(link); }catch(_){}
+    if(openWhatsAppText("📍 Standort: "+link)){
+      toast("Maps", "Link kopiert ✅");
+      return;
+    }
+    await shareText("📍 Standort: "+link, "Maps");
+  });
+
 
   el("btnCDown").addEventListener("click", ()=>{ const p=currentProject(); if(!p) return; downloadText(chefWhatsText(p), fileSafe(`${p.title}_Intern.txt`)); });
 
@@ -1784,7 +1888,11 @@ function computeTotals(c){
     location.reload();
   });
 
-  function refreshCustomerUI(){
+  
+    const kStreet=el("kStreet"), kZip=el("kZip"), kCity=el("kCity"), kCountry=el("kCountry"), kObjAddr=el("kObjAddr");
+    const addrBar=el("addrBar");
+    const segList=el("segList"), segAddLabel=el("segAddLabel"), btnSegAdd=el("btnSegAdd"), btnSegCollapseAll=el("btnSegCollapseAll"), btnSegExpandAll=el("btnSegExpandAll");
+function refreshCustomerUI(){
     const p=currentProject(); if(!p) return;
     const c=p.customer;
     el("kundeTitle").textContent = `👤 Kunde: ${p.title}`;
@@ -1819,6 +1927,249 @@ function computeTotals(c){
     toggleMaterialDependent();
     togglePrivacyDependent();
     refreshKpi();
+  
+    // Adresse anzeigen + speichern
+    function updateAddrBar(){
+      if(!p) return;
+      p.addrStreet = (kStreet ? (kStreet.value||"") : (p.addrStreet||"")).trim();
+      p.addrZip = (kZip ? (kZip.value||"") : (p.addrZip||"")).trim();
+      p.addrCity = (kCity ? (kCity.value||"") : (p.addrCity||"")).trim();
+      p.addrCountry = (kCountry ? (kCountry.value||"DE") : (p.addrCountry||"DE")).trim() || "DE";
+      if(kObjAddr) p.objAddr = (kObjAddr.value||"").trim();
+
+      // legacy combined fields
+      p.addr = fullCustomerAddress(p);
+      if(addrBar) addrBar.textContent = "Adresse: " + (p.addr || "—");
+    }
+
+    async function tryZipAutofill(){
+      if(!p || !kZip || !kCity) return;
+      const zip = String(kZip.value||"").trim();
+      if(!/^[0-9]{5}$/.test(zip)) return;
+      if(!navigator.onLine) return; // offline -> manuell
+      // nur wenn ort leer ist oder sehr kurz
+      const cur = String(kCity.value||"").trim();
+      if(cur && cur.length>=2) return;
+      const city = await lookupCityByZip(zip);
+      if(city){
+        kCity.value = city;
+        updateAddrBar();
+        save();
+        toast("Ort ergänzt", `${zip} → ${city}`);
+      }
+    }
+
+    // Segmente (A,B,C…)
+    function ensureSegments(){
+      p.customer = p.customer || {};
+      if(!Array.isArray(p.customer.segments) || !p.customer.segments.length){
+        // migrate from legacy
+        p.customer.segments = [{
+          id: uid(),
+          label: "A",
+          length: p.customer.length || "",
+          height: p.customer.height || 160,
+          system: p.customer.system || "Doppelstab",
+          color: p.customer.color || "Anthrazit (RAL 7016)",
+          privacy: p.customer.privacy || "no"
+        }];
+      }
+    }
+
+    function totalLengthFromSegments(){
+      const segs = (p.customer && Array.isArray(p.customer.segments)) ? p.customer.segments : [];
+      let sum = 0;
+      for(const s of segs){
+        sum += Math.max(0, toNum(s.length, 0));
+      }
+      return sum;
+    }
+
+    function renderSegments(){
+      if(!segList) return;
+      ensureSegments();
+      const segs = p.customer.segments;
+
+      // label options for add
+      if(segAddLabel && !segAddLabel.dataset.ready){
+        const used = new Set();
+        const labels = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+        segAddLabel.innerHTML = labels.slice(0,10).map(x=>`<option value="${x}">${x}</option>`).join("");
+        segAddLabel.dataset.ready="1";
+      }
+
+      segList.innerHTML = "";
+      for(const s of segs){
+        const sum = `Abschnitt ${escapeHtml(s.label||"")}`;
+        const len = toNum(s.length,0);
+        const ht = s.height || "";
+        const sys = s.system || "";
+        const col = s.color || "";
+        const isPriv = (s.privacy||"no")==="yes";
+        const det = document.createElement("details");
+        det.open = true;
+        det.className = "card";
+        det.style.marginTop="8px";
+        det.innerHTML = `
+          <summary style="cursor:pointer; user-select:none;">
+            <b>${sum}</b> — ${len?len+" m":"—"} • ${ht?ht+" cm":"—"} • ${escapeHtml(sys)} • ${escapeHtml(col)} ${isPriv?"• Sichtschutz":""}
+          </summary>
+
+          <div class="grid3" style="margin-top:10px;">
+            <div>
+              <label>Länge (m)</label>
+              <input data-k="len" inputmode="decimal" value="${s.length||""}" placeholder="z.B. 12,5" />
+            </div>
+            <div>
+              <label>Höhe</label>
+              <select data-k="height"></select>
+            </div>
+            <div>
+              <label>System</label>
+              <select data-k="system">
+                <option>Doppelstab</option>
+                <option>Einfachstab</option>
+                <option>Diagonalgeflecht</option>
+                <option>Tornado</option>
+                <option>Elektrozaun</option>
+              </select>
+            </div>
+            <div style="grid-column: span 2;">
+              <label>Farbe</label>
+              <input data-k="color" value="${s.color||""}" placeholder="z.B. Anthrazit (RAL 7016)" />
+            </div>
+            <div>
+              <label>Sichtschutz</label>
+              <select data-k="privacy">
+                <option value="no">Nein</option>
+                <option value="yes">Ja</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px; gap:8px;">
+            <button data-act="del" class="btn red" type="button">Löschen</button>
+          </div>
+        `;
+
+        // height options
+        const selH = det.querySelector('select[data-k="height"]');
+        if(selH){
+          selH.innerHTML = "";
+          for(let h=60; h<=220; h+=20){
+            const o=document.createElement("option");
+            o.value=String(h); o.textContent=`${h} cm`;
+            selH.appendChild(o);
+          }
+          selH.value=String(s.height||160);
+        }
+        // system select
+        const selS = det.querySelector('select[data-k="system"]');
+        if(selS) selS.value = String(s.system||"Doppelstab");
+        const selP = det.querySelector('select[data-k="privacy"]');
+        if(selP) selP.value = String(s.privacy||"no");
+
+        const commit = ()=>{
+          s.length = (det.querySelector('input[data-k="len"]').value||"").trim();
+          s.height = Number(det.querySelector('select[data-k="height"]').value||160);
+          s.system = String(det.querySelector('select[data-k="system"]').value||"Doppelstab");
+          s.color = (det.querySelector('input[data-k="color"]').value||"").trim() || "Anthrazit (RAL 7016)";
+          s.privacy = String(det.querySelector('select[data-k="privacy"]').value||"no");
+
+          // legacy fallback: total length and default fields from first segment
+          p.customer.length = String(totalLengthFromSegments() || "");
+          const a = p.customer.segments[0] || s;
+          p.customer.height = a.height || p.customer.height;
+          p.customer.system = a.system || p.customer.system;
+          p.customer.color = a.color || p.customer.color;
+          // privacy global yes if any segment yes
+          p.customer.privacy = p.customer.segments.some(x=>(x.privacy||"no")==="yes") ? "yes" : "no";
+
+          save();
+          try{ refreshAll(); }catch(e){}
+        };
+
+        det.querySelectorAll("input,select").forEach(elm=>{
+          elm.addEventListener("change", commit);
+          elm.addEventListener("input", ()=>{ save(); updateAddrBar(); });
+        });
+
+        const btnDel = det.querySelector('button[data-act="del"]');
+        if(btnDel){
+          btnDel.addEventListener("click", ()=>{
+            if(segs.length<=1){
+              toast("Nicht möglich", "Mindestens Abschnitt A bleibt.");
+              return;
+            }
+            if(confirm(`Abschnitt ${s.label} löschen?`)){
+              p.customer.segments = p.customer.segments.filter(x=>x.id!==s.id);
+              // update legacy fields
+              p.customer.length = String(totalLengthFromSegments() || "");
+              p.customer.privacy = p.customer.segments.some(x=>(x.privacy||"no")==="yes") ? "yes":"no";
+              save();
+              renderSegments();
+              refreshAll();
+            }
+          });
+        }
+
+        segList.appendChild(det);
+      }
+    }
+
+    function closeAllSegments(open){
+      if(!segList) return;
+      segList.querySelectorAll("details").forEach(d=>{ d.open = !!open; });
+    }
+
+    if(btnSegCollapseAll && !btnSegCollapseAll.dataset.bound){ btnSegCollapseAll.dataset.bound="1"; btnSegCollapseAll.addEventListener("click", ()=>closeAllSegments(false)); }
+    if(btnSegExpandAll && !btnSegExpandAll.dataset.bound){ btnSegExpandAll.dataset.bound="1"; btnSegExpandAll.addEventListener("click", ()=>closeAllSegments(true)); }
+
+    if(btnSegAdd && !btnSegAdd.dataset.bound){ btnSegAdd.dataset.bound="1"; btnSegAdd.addEventListener("click", ()=>{
+      ensureSegments();
+      const used = new Set((p.customer.segments||[]).map(x=>String(x.label||"").toUpperCase()));
+      const want = segAddLabel ? String(segAddLabel.value||"").toUpperCase() : "B";
+      let label = want;
+      if(used.has(label)){
+        // pick next free
+        const labels="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+        label = labels.find(x=>!used.has(x)) || ("X"+String(Date.now()).slice(-2));
+      }
+      const base = p.customer.segments[0] || {};
+      p.customer.segments.push({
+        id: uid(),
+        label,
+        length:"",
+        height: base.height || 160,
+        system: base.system || "Doppelstab",
+        color: base.color || "Anthrazit (RAL 7016)",
+        privacy: base.privacy || "no"
+      });
+      save();
+      renderSegments();
+      toast("Abschnitt hinzugefügt", label);
+    }); }
+
+    // Initial values for address inputs
+    if(kStreet) kStreet.value = p.addrStreet || "";
+    if(kZip) kZip.value = p.addrZip || "";
+    if(kCity) kCity.value = p.addrCity || "";
+    if(kCountry) kCountry.value = p.addrCountry || "DE";
+    if(kObjAddr) kObjAddr.value = p.objAddr || "";
+    updateAddrBar();
+    renderSegments();
+
+    if(kStreet && !kStreet.dataset.bound){ kStreet.dataset.bound="1"; kStreet.addEventListener("input", ()=>{ updateAddrBar(); save(); }); }
+    if(kCity && !kCity.dataset.bound){ kCity.dataset.bound="1"; kCity.addEventListener("input", ()=>{ updateAddrBar(); save(); }); }
+    if(kCountry && !kCountry.dataset.bound){ kCountry.dataset.bound="1"; kCountry.addEventListener("input", ()=>{ updateAddrBar(); save(); }); }
+    if(kObjAddr && !kObjAddr.dataset.bound){ kObjAddr.dataset.bound="1"; kObjAddr.addEventListener("input", ()=>{ updateAddrBar(); save(); }); }
+    if(kZip && !kZip.dataset.bound){
+      kZip.dataset.bound="1";
+      kZip.addEventListener("input", ()=>{ updateAddrBar(); save(); });
+      kZip.addEventListener("change", ()=>{ updateAddrBar(); save(); tryZipAutofill(); });
+      kZip.addEventListener("blur", ()=>{ tryZipAutofill(); });
+    }
+
   }
 
     function refreshChefUI(){
