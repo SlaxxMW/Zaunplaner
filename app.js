@@ -1,81 +1,6 @@
-/* === DIAGNOSTIC BUILD ===
-   Wenn "keine Version / kein Kunde / keine Demo" -> hier siehst du den echten JS-Fehler direkt im Tool.
-*/
-(function(){
-  const TAG = "Zaunplaner DIAG";
-  function ensurePanel(){
-    let p=document.getElementById("diagPanel");
-    if(p) return p;
-    p=document.createElement("div");
-    p.id="diagPanel";
-    p.style.cssText=[
-      "position:fixed","left:12px","bottom:12px","z-index:999999",
-      "max-width:92vw","width:520px","max-height:45vh","overflow:auto",
-      "background:rgba(0,0,0,.85)","color:#eafff0","border:1px solid rgba(255,255,255,.25)",
-      "border-radius:14px","padding:10px 12px","font:12px/1.35 system-ui,Segoe UI,Roboto,Arial"
-    ].join(";");
-    const h=document.createElement("div");
-    h.style.cssText="display:flex;align-items:center;gap:10px;margin-bottom:6px;";
-    const b=document.createElement("span");
-    b.textContent=TAG;
-    b.style.cssText="font-weight:900;letter-spacing:.3px;";
-    const pill=document.createElement("span");
-    pill.id="diagPill";
-    pill.textContent="boot…";
-    pill.style.cssText="margin-left:auto; padding:4px 10px;border-radius:999px;background:#ffcf5a;color:#2a1b00;font-weight:900;";
-    const x=document.createElement("button");
-    x.textContent="×";
-    x.type="button";
-    x.style.cssText="margin-left:6px;border:0;border-radius:10px;padding:2px 10px;font-weight:900;cursor:pointer;background:#ffffff22;color:#eafff0;";
-    x.onclick=()=>{ p.remove(); };
-    h.appendChild(b); h.appendChild(pill); h.appendChild(x);
-    const pre=document.createElement("pre");
-    pre.id="diagLog";
-    pre.style.cssText="margin:0;white-space:pre-wrap;word-break:break-word;opacity:.95;";
-    p.appendChild(h); p.appendChild(pre);
-    document.addEventListener("DOMContentLoaded", ()=>{ document.body.appendChild(p); }, {once:true});
-    // falls DOM schon da:
-    if(document.body && !p.parentNode) document.body.appendChild(p);
-    return p;
-  }
-  function log(msg, obj){
-    try{
-      const p=ensurePanel();
-      const pre=p.querySelector("#diagLog");
-      const ts=new Date().toLocaleTimeString();
-      let line=`[${ts}] ${msg}`;
-      if(obj!==undefined){
-        try{ line += " " + JSON.stringify(obj); }catch(e){ line += " " + String(obj); }
-      }
-      pre.textContent += line + "\n";
-    }catch(e){}
-  }
-  function pill(txt, ok){
-    try{
-      const p=ensurePanel();
-      const el=p.querySelector("#diagPill");
-      el.textContent=txt;
-      el.style.background = ok ? "#37d86a" : "#ff5a5a";
-      el.style.color = ok ? "#06210f" : "#2a0000";
-    }catch(e){}
-  }
-  window.__ZAUN_DIAG__ = { log, pill };
-  log("diag loaded", {href: location.href});
-  window.addEventListener("error", (ev)=>{
-    log("❌ JS error: "+(ev.message||"") , {file: ev.filename, line: ev.lineno, col: ev.colno});
-    if(ev.error && ev.error.stack) log(ev.error.stack);
-    pill("JS ERROR", false);
-  });
-  window.addEventListener("unhandledrejection", (ev)=>{
-    log("❌ Promise rejection", String(ev.reason||""));
-    pill("PROMISE ERROR", false);
-  });
-})();
-
 let gateUiIdx=0; let gateCollapsed=false;
 (() => {
   "use strict";
-  try{ window.__ZAUN_DIAG__ && window.__ZAUN_DIAG__.pill("main…", true); }catch(e){}
 
   // --- Airbag: zeigt JS-Fehler sofort im Toast (damit Tabs/Dropdowns nicht "still" sterben)
   window.addEventListener("error", (e)=>{
@@ -171,7 +96,7 @@ function toast(a,b="") {
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-    const APP_VERSION = "1.4.42D";
+    const APP_VERSION = "1.4.43";
   const APP_BUILD = "2025-12-20";
 let state = { version:"1.4.33", selectedProjectId:null, projects:[], meta:{ lastSavedAt:"", lastBackupAt:"" } };
 
@@ -616,8 +541,8 @@ ${p.title}`)) return;
     return Math.max(lo, Math.min(hi, n));
   }
   function setCorners(v){ kCorners.value = String(clampInt(v)); }
-  { const _b=el("kCornersMinus"); if(_b) _b.addEventListener("click", ()=>{ setCorners(clampInt(kCorners.value)-1); } persistCustomer(); });
-  { const _b=el("kCornersPlus"); if(_b) _b.addEventListener("click", ()=>{ setCorners(clampInt(kCorners.value)+1); } persistCustomer(); });
+  { const _b=el("kCornersMinus"); if(_b) _b.addEventListener("click", ()=>{ setCorners(clampInt(kCorners.value)-1); persistCustomer(); }); }
+  { const _b=el("kCornersPlus"); if(_b) _b.addEventListener("click", ()=>{ setCorners(clampInt(kCorners.value)+1); persistCustomer(); }); }
   if(kCorners) kCorners.addEventListener("change", ()=>{ setCorners(kCorners.value); persistCustomer(); });
 
   function updateConcretePlaceholder(){ kConcreteVal.placeholder = (kConcreteMode.value==="m3") ? "Auto (m³)" : "Auto (Sack)"; }
@@ -2799,7 +2724,6 @@ function refreshCustomerUI(){
             elm.addEventListener("blur", commit);
           }
         });
-});
 
         const btnDel = det.querySelector('button[data-act="del"]');
         if(btnDel){
@@ -2966,13 +2890,10 @@ function refreshCustomerUI(){
     refreshAll();
     toast("✅ Demo geladen", p.title);
   }
-  try{ window.__ZAUN_DIAG__ && window.__ZAUN_DIAG__.pill("ready ✅", true); }catch(e){}
-
   if(btnDemo) btnDemo.addEventListener("click", ()=>{
     if(confirm("Demo-Daten laden? (Ersetzt NICHT deine echten Kunden – aber wird als neuer Kunde angelegt)")){
       loadDemo();
     }
   });
-})();
 
 if(typeof btnUpdate!=="undefined" && btnUpdate){ btnUpdate.addEventListener("click", checkForUpdates); }
