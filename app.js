@@ -1,6 +1,81 @@
+/* === DIAGNOSTIC BUILD ===
+   Wenn "keine Version / kein Kunde / keine Demo" -> hier siehst du den echten JS-Fehler direkt im Tool.
+*/
+(function(){
+  const TAG = "Zaunplaner DIAG";
+  function ensurePanel(){
+    let p=document.getElementById("diagPanel");
+    if(p) return p;
+    p=document.createElement("div");
+    p.id="diagPanel";
+    p.style.cssText=[
+      "position:fixed","left:12px","bottom:12px","z-index:999999",
+      "max-width:92vw","width:520px","max-height:45vh","overflow:auto",
+      "background:rgba(0,0,0,.85)","color:#eafff0","border:1px solid rgba(255,255,255,.25)",
+      "border-radius:14px","padding:10px 12px","font:12px/1.35 system-ui,Segoe UI,Roboto,Arial"
+    ].join(";");
+    const h=document.createElement("div");
+    h.style.cssText="display:flex;align-items:center;gap:10px;margin-bottom:6px;";
+    const b=document.createElement("span");
+    b.textContent=TAG;
+    b.style.cssText="font-weight:900;letter-spacing:.3px;";
+    const pill=document.createElement("span");
+    pill.id="diagPill";
+    pill.textContent="boot…";
+    pill.style.cssText="margin-left:auto; padding:4px 10px;border-radius:999px;background:#ffcf5a;color:#2a1b00;font-weight:900;";
+    const x=document.createElement("button");
+    x.textContent="×";
+    x.type="button";
+    x.style.cssText="margin-left:6px;border:0;border-radius:10px;padding:2px 10px;font-weight:900;cursor:pointer;background:#ffffff22;color:#eafff0;";
+    x.onclick=()=>{ p.remove(); };
+    h.appendChild(b); h.appendChild(pill); h.appendChild(x);
+    const pre=document.createElement("pre");
+    pre.id="diagLog";
+    pre.style.cssText="margin:0;white-space:pre-wrap;word-break:break-word;opacity:.95;";
+    p.appendChild(h); p.appendChild(pre);
+    document.addEventListener("DOMContentLoaded", ()=>{ document.body.appendChild(p); }, {once:true});
+    // falls DOM schon da:
+    if(document.body && !p.parentNode) document.body.appendChild(p);
+    return p;
+  }
+  function log(msg, obj){
+    try{
+      const p=ensurePanel();
+      const pre=p.querySelector("#diagLog");
+      const ts=new Date().toLocaleTimeString();
+      let line=`[${ts}] ${msg}`;
+      if(obj!==undefined){
+        try{ line += " " + JSON.stringify(obj); }catch(e){ line += " " + String(obj); }
+      }
+      pre.textContent += line + "\n";
+    }catch(e){}
+  }
+  function pill(txt, ok){
+    try{
+      const p=ensurePanel();
+      const el=p.querySelector("#diagPill");
+      el.textContent=txt;
+      el.style.background = ok ? "#37d86a" : "#ff5a5a";
+      el.style.color = ok ? "#06210f" : "#2a0000";
+    }catch(e){}
+  }
+  window.__ZAUN_DIAG__ = { log, pill };
+  log("diag loaded", {href: location.href});
+  window.addEventListener("error", (ev)=>{
+    log("❌ JS error: "+(ev.message||"") , {file: ev.filename, line: ev.lineno, col: ev.colno});
+    if(ev.error && ev.error.stack) log(ev.error.stack);
+    pill("JS ERROR", false);
+  });
+  window.addEventListener("unhandledrejection", (ev)=>{
+    log("❌ Promise rejection", String(ev.reason||""));
+    pill("PROMISE ERROR", false);
+  });
+})();
+
 let gateUiIdx=0; let gateCollapsed=false;
 (() => {
   "use strict";
+  try{ window.__ZAUN_DIAG__ && window.__ZAUN_DIAG__.pill("main…", true); }catch(e){}
 
   // --- Airbag: zeigt JS-Fehler sofort im Toast (damit Tabs/Dropdowns nicht "still" sterben)
   window.addEventListener("error", (e)=>{
@@ -96,8 +171,8 @@ function toast(a,b="") {
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-    const APP_VERSION = "1.4.39";
-  const APP_BUILD = "2025-12-19";
+    const APP_VERSION = "1.4.42D";
+  const APP_BUILD = "2025-12-20";
 let state = { version:"1.4.33", selectedProjectId:null, projects:[], meta:{ lastSavedAt:"", lastBackupAt:"" } };
 
   function blankProject(name) {
@@ -541,9 +616,9 @@ ${p.title}`)) return;
     return Math.max(lo, Math.min(hi, n));
   }
   function setCorners(v){ kCorners.value = String(clampInt(v)); }
-  el("kCornersMinus").addEventListener("click", ()=>{ setCorners(clampInt(kCorners.value)-1); persistCustomer(); });
-  el("kCornersPlus").addEventListener("click", ()=>{ setCorners(clampInt(kCorners.value)+1); persistCustomer(); });
-  kCorners.addEventListener("change", ()=>{ setCorners(kCorners.value); persistCustomer(); });
+  { const _b=el("kCornersMinus"); if(_b) _b.addEventListener("click", ()=>{ setCorners(clampInt(kCorners.value)-1); } persistCustomer(); });
+  { const _b=el("kCornersPlus"); if(_b) _b.addEventListener("click", ()=>{ setCorners(clampInt(kCorners.value)+1); } persistCustomer(); });
+  if(kCorners) kCorners.addEventListener("change", ()=>{ setCorners(kCorners.value); persistCustomer(); });
 
   function updateConcretePlaceholder(){ kConcreteVal.placeholder = (kConcreteMode.value==="m3") ? "Auto (m³)" : "Auto (Sack)"; }
   kConcreteMode.addEventListener("change", ()=>{ updateConcretePlaceholder(); persistCustomer(); });
@@ -676,14 +751,33 @@ function validateProject(p){
     const issues = [];
     if(!p) { issues.push("Kein Kunde ausgewählt."); return issues; }
     const c = p.customer || {};
-    const len = Array.isArray(c.segments)&&c.segments.length ? c.segments.reduce((a,s)=>a+Math.max(0,toNum(s.length,0)),0) : toNum(c.length, 0);
-    if(!len || len<=0) issues.push("Zaunlänge fehlt (m).");
-    if(!c.height) issues.push("Höhe fehlt.");
-    if(!c.system) issues.push("System fehlt.");
+    const segs = Array.isArray(c.segments) ? c.segments : [];
+    const segmentsActive = !!(c.useSegments && segs.length);
+    const len = segmentsActive
+      ? segs.reduce((a,s)=>a+Math.max(0,toNum(s.length,0)),0)
+      : toNum(c.length, 0);
+
+    if(!len || len<=0) issues.push(segmentsActive ? "Zaunabschnitte: Länge fehlt." : "Zaunlänge fehlt (m).");
+
+    if(!segmentsActive){
+      if(!c.height) issues.push("Höhe fehlt.");
+      if(!c.system) issues.push("System fehlt.");
+    }else{
+      // Nur Segmente prüfen, die eine Länge haben
+      for(const s of segs){
+        if(toNum(s.length,0) <= 0) continue;
+        if(!s.height) issues.push(`Abschnitt ${s.label||""}: Höhe fehlt.`);
+        if(!s.system) issues.push(`Abschnitt ${s.label||""}: System fehlt.`);
+      }
+    }
+
     // Sichtschutz nur wenn Länge vorhanden
     if(c.privacy==="yes" && (!len || len<=0)) issues.push("Sichtschutz gewählt, aber Zaunlänge fehlt.");
+
     // Tore: wenn gateType != none aber keine Varianten
-    if(c.gateType && c.gateType!=="none" && (!Array.isArray(c.gates) || !c.gates.length)) issues.push("Tor-Typ gewählt, aber keine Tor-Varianten hinterlegt.");
+    if(c.gateType && c.gateType!=="none" && (!Array.isArray(c.gates) || !c.gates.length)){
+      issues.push("Tor-Typ gewählt, aber keine Tor-Varianten hinterlegt.");
+    }
     return issues;
   }
 
@@ -771,7 +865,7 @@ function computeTotals(c){
 
   function sysLabel(c){
     const h=Number(c.height)||160;
-    const base = (c.system==="Doppelstab")?"Doppelstab‑Matten":(c.system==="Aluminium")?"Alu‑Elemente":(c.system==="Holz")?"Holz‑Elemente":(c.system==="WPC")?"WPC‑Elemente":(c.system==="Diagonal Geflecht")?"Diagonal‑Geflecht":(c.system==="Tornado")?"Tornado‑Zaun":(c.system==="Elektrozaun")?"Elektrozaun":"Zaun‑Elemente";
+    const base = (c.system==="Doppelstab")?"Doppelstab‑Matten":(c.system==="Aluminium")?"Alu‑Elemente":(c.system==="Holz")?"Holz‑Elemente":(c.system==="WPC")?"WPC‑Elemente":(c.system==="Diagonal Geflecht")?"Diagonal‑Geflecht":(c.system==="Tornado")?"Tornado‑Zaun":(c.system==="Elektrozaun")?"Elektrozaun":(c.system==="Alu")?"Alu‑Zaun":"Zaun‑Elemente";
     return `${base} 2,50m • ${h} cm`;
   }
 
@@ -879,9 +973,8 @@ function computeTotals(c){
     if(it){ it.qty=Number(qty)||0; it.unit=unit||"Stk"; if(note) it.note=note; }
     else list.unshift({id:uid(), name, qty:Number(qty)||0, unit:unit||"Stk", note:note||""});
   }
-
-  el("btnKCalc").addEventListener("click", ()=>{
-    const p=currentProject(); if(!p) return;
+  // btnKCalc removed
+if(!p) return;
     const c=p.customer;
     const t=computeTotals(c);
     if(!t.lengthM) return toast("Länge fehlt","Bitte Zaunlänge eingeben");
@@ -1756,10 +1849,24 @@ function computeTotals(c){
   }
   function sortMaterials(list){
     const arr = Array.isArray(list) ? list.slice() : [];
+    const getSizeCm = (name)=>{
+      const s=String(name||"");
+      let m=null, last=null;
+      const re=/([0-9]{2,3})\s*cm\b/gi;
+      while((m=re.exec(s))){ last=m[1]; }
+      return last? parseInt(last,10) : null;
+    };
     arr.sort((a,b)=>{
       const ca = MAT_ORDER.indexOf(matCategory(a && a.name));
       const cb = MAT_ORDER.indexOf(matCategory(b && b.name));
       if(ca!==cb) return ca-cb;
+
+      const sa = getSizeCm(a && a.name);
+      const sb = getSizeCm(b && b.name);
+      if(sa!=null && sb!=null && sa!==sb) return sa-sb;
+      if(sa!=null && sb==null) return -1;
+      if(sa==null && sb!=null) return 1;
+
       return String((a&&a.name)||"").localeCompare(String((b&&b.name)||""),"de",{sensitivity:"base",numeric:true});
     });
     return arr;
@@ -2606,10 +2713,10 @@ function refreshCustomerUI(){
               <label>System</label>
               <select data-k="system">
                 <option>Doppelstab</option>
-                <option>Einfachstab</option>
-                <option>Diagonalgeflecht</option>
+                                <option>Diagonalgeflecht</option>
                 <option>Tornado</option>
                 <option>Elektrozaun</option>
+                <option>Alu</option>
               </select>
             </div>
             <div style="grid-column: span 2;">
@@ -2618,7 +2725,7 @@ function refreshCustomerUI(){
             </div>
             <div>
               <label>Eckpfosten</label>
-              <input data-k="corners" inputmode="numeric" value="${s.corners||0}" placeholder="0" />
+              <input data-k="corners" type="number" min="0" step="1" inputmode="numeric" value="${s.corners||0}" placeholder="0" />
             </div>
 
             <div>
@@ -2658,6 +2765,7 @@ function refreshCustomerUI(){
           s.system = String(det.querySelector('select[data-k="system"]').value||"Doppelstab");
           s.color = (det.querySelector('input[data-k="color"]').value||"").trim() || "Anthrazit (RAL 7016)";
           s.privacy = String(det.querySelector('select[data-k="privacy"]').value||"no");
+          s.corners = clampInt((det.querySelector('input[data-k="corners"]')?.value||0), 0, 999);
 
           // legacy fallback: total length and default fields from first segment
           p.customer.length = String(totalLengthFromSegments() || "");
@@ -2672,10 +2780,26 @@ function refreshCustomerUI(){
           try{ refreshAll(); }catch(e){}
         };
 
+        
         det.querySelectorAll("input,select").forEach(elm=>{
-          elm.addEventListener("change", commit);
-          elm.addEventListener("input", ()=>{ save(); updateAddrBar(); });
+          const dk = (elm.dataset && elm.dataset.k) ? elm.dataset.k : "";
+          // Mobile Fix: kein Re-Render bei jedem Tastendruck, sonst verliert das Feld den Fokus
+          if(elm.tagName==="INPUT" && (dk==="length" || dk==="corners")){
+            elm.addEventListener("input", ()=>{
+              const s = segs[idx]; if(!s) return;
+              if(dk==="length") s.length = toNum(elm.value, 0);
+              if(dk==="corners") s.corners = clampInt(elm.value, 0, 999);
+              save();
+              try{ updateAddrBar(); }catch(e){}
+            });
+            elm.addEventListener("change", commit);
+            elm.addEventListener("blur", commit);
+          } else {
+            elm.addEventListener("change", commit);
+            elm.addEventListener("blur", commit);
+          }
         });
+});
 
         const btnDel = det.querySelector('button[data-act="del"]');
         if(btnDel){
@@ -2842,6 +2966,8 @@ function refreshCustomerUI(){
     refreshAll();
     toast("✅ Demo geladen", p.title);
   }
+  try{ window.__ZAUN_DIAG__ && window.__ZAUN_DIAG__.pill("ready ✅", true); }catch(e){}
+
   if(btnDemo) btnDemo.addEventListener("click", ()=>{
     if(confirm("Demo-Daten laden? (Ersetzt NICHT deine echten Kunden – aber wird als neuer Kunde angelegt)")){
       loadDemo();

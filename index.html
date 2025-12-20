@@ -299,6 +299,8 @@
     }
 
   .isDisabled{ opacity:0.65; filter:saturate(0.85); }
+
+  .globalFenceFields{ display:none !important; }
 </style>
 </head>
 
@@ -477,7 +479,7 @@
           <label>E‑Mail</label>
           <input id="kEmail" inputmode="email" />
         </div>
-        <div>
+        <div class="globalFenceFields">
           <label>Zaunlänge (m)</label>
           <input id="kLen" inputmode="decimal" placeholder="z. B. 17,5" />
         </div>
@@ -491,13 +493,10 @@
           <div class="pill" id="chefSegmentsPill">—</div>
         </div>
         <div id="chefSegmentsList" style="margin-top:8px;"></div>
-        <div class="row" style="margin-top:8px; gap:8px; flex-wrap:wrap;">
-          <button class="btn green" id="btnChefMaps" type="button">📍 Google Maps</button>
-          <button class="btn teal" id="btnChefWhatsAll" type="button">WhatsApp Intern (alles)</button>
-        </div>
+        
       </div>
 
-      <div class="grid3">
+      <div class="grid3 globalFenceFields">
         <div>
           <label>Höhe</label>
           <select id="kHeight"></select>
@@ -566,13 +565,7 @@
           <label>Gefälle %</label>
           <input id="kSlopePct" inputmode="decimal" placeholder="z. B. 2,5" />
         </div>
-        <div>
-          <label>Ecken</label>
-          <div class="row">
-            <button class="btn small" id="kCornersMinus" type="button">−</button>
-            <input id="kCorners" inputmode="numeric" value="0" style="max-width:140px;" />
-            <button class="btn small" id="kCornersPlus" type="button">+</button>
-          </div>
+        
         </div>
       </div>
 
@@ -642,7 +635,7 @@
       <textarea id="kNote" placeholder="Notizen…"></textarea>
 
       <div class="row" style="margin-top:10px;">
-        <button class="btn good dark" id="btnKCalc" type="button">Material berechnen → Chef</button>
+        
         <button class="btn blue" id="btnKDown" type="button">Kunden‑Text Download</button>
         <button class="btn accent green" id="btnKWhats" type="button">WhatsApp Kunde</button>
         <button class="btn orange" id="btnKCall" type="button">📞</button>
@@ -815,7 +808,7 @@
     <option value="200"></option>
   </datalist>
 
-  <script src="./app.js?v=1.4.38" defer></script></script>
+  <script src="./app.js?v=1.4.42D" defer></script></script>
 <!-- PWA Service Worker (Auto-Update) -->
   <script>
     if ("serviceWorker" in navigator) {
