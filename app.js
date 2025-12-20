@@ -38,7 +38,42 @@ let gateUiIdx=0; let gateCollapsed=false;
 
   const el = (id) => document.getElementById(id);
   const toastEl = el("toast");
-  function toast(a,b="") {
+  
+  async function checkForUpdates(){
+    try{
+      toast("🔎 Prüfe Update…");
+      const url = "app.js?v=" + Date.now();
+      const txt = await (await fetch(url, {cache:"no-store"})).text();
+      const m = txt.match(/const APP_VERSION = "([^"]+)"/);
+      const remote = m ? m[1] : null;
+      if(!remote){
+        toast("Update-Check: keine Versionsinfo gefunden.");
+        return;
+      }
+      if(remote === APP_VERSION){
+        toast("✅ Du bist aktuell ("+APP_VERSION+").");
+        return;
+      }
+      const ok = confirm("Neue Version gefunden: "+remote+" (du hast "+APP_VERSION+"). Jetzt aktualisieren?\n\nHinweis: Deine Kunden bleiben erhalten.");
+      if(!ok) return;
+
+      // Safety save (LocalStorage bleibt)
+      try{ save(); }catch(_){}
+      // Force SW cache refresh if available
+      try{
+        if(navigator.serviceWorker && navigator.serviceWorker.controller){
+          navigator.serviceWorker.controller.postMessage({type:"FORCE_UPDATE"});
+        }
+      }catch(_){}
+      // Hard reload with cache-bust
+      const base = location.href.split("?")[0].split("#")[0];
+      location.href = base + "?v=" + Date.now();
+    }catch(e){
+      toast("Update-Check fehlgeschlagen.");
+    }
+  }
+
+function toast(a,b="") {
     toastEl.style.display="block";
     toastEl.textContent = b ? (a + " — " + b) : a;
     setTimeout(()=> toastEl.style.display="none", 2200);
@@ -61,7 +96,7 @@ let gateUiIdx=0; let gateCollapsed=false;
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-    const APP_VERSION = "1.4.38";
+    const APP_VERSION = "1.4.39";
   const APP_BUILD = "2025-12-19";
 let state = { version:"1.4.33", selectedProjectId:null, projects:[], meta:{ lastSavedAt:"", lastBackupAt:"" } };
 
@@ -1774,7 +1809,16 @@ function computeTotals(c){
 
     if(segs.length){
       
+      
+      // Segment-Mode: Matten pro Abschnitt (wenn Systeme/Höhen abweichen), Pfosten/Leisten je Höhe gesamt,
+      // Sichtschutz nur als Gesamt-Rollen (keine Streifen-Liste).
       let started=false;
+
+      const normalByH = new Map();   // height -> qty
+      const cornersByH = new Map();  // height -> qty
+      const stripsByH  = new Map();  // height -> qty (Pfostenleisten = alle Pfosten)
+      let privacyStripM_total = 0;
+
       for(const s of segs){
         const label = (s.label||"?").toString();
         const len = Math.max(0,toNum(s.length,0));
@@ -1788,26 +1832,42 @@ function computeTotals(c){
         const cornersSeg = clampInt(s.corners||0,0,posts);
         const normalPosts = Math.max(0, posts - cornersSeg);
 
+        // Matten (pro Abschnitt, da ggf. unterschiedliche Systeme/Höhen)
         const sys = (s.system||c.system||"Doppelstab");
         const sysObj = { system: sys, height: h };
         const matLbl = `Abschnitt ${label} — ${sysLabel(sysObj)}`;
-
         auto.push({ k:`auto_matten_${label}`, label: matLbl, qty: panels, unit:"Stk" });
 
-        // Pfosten/Leisten immer passend zur Höhe (Ecken ziehen normale Pfosten ab)
-        auto.push({ k:`auto_pfosten_${label}_${h}`, label:`Abschnitt ${label} — Pfosten ${h} cm`, qty: normalPosts, unit:"Stk" });
-        if(cornersSeg>0){
-          auto.push({ k:`auto_eckpfosten_${label}_${h}`, label:`Abschnitt ${label} — Eckpfosten ${h} cm`, qty: cornersSeg, unit:"Stk" });
-        }
-        auto.push({ k:`auto_leisten_${label}_${h}`, label:`Abschnitt ${label} — Pfostenleisten ${h} cm`, qty: posts, unit:"Stk" });
+        // Summen je Höhe
+        normalByH.set(h, (normalByH.get(h)||0) + normalPosts);
+        cornersByH.set(h, (cornersByH.get(h)||0) + cornersSeg);
+        stripsByH.set(h, (stripsByH.get(h)||0) + posts);
 
-        // Sichtschutz pro Abschnitt
+        // Sichtschutz: nur Gesamt-Rollen zählen (aus Streifen-Metern)
         if(String(s.privacy||"no")==="yes"){
           const ss = computePrivacyForSegment(len, h, c);
-          if(ss.rolls>0) auto.push({ k:`auto_ss_${label}`, label:`Abschnitt ${label} — Sichtschutz Rollen (${ss.rollLen} m)`, qty:ss.rolls, unit:"Stk" });
-          if(ss.strips>0) auto.push({ k:`auto_ssstrips_${label}`, label:`Abschnitt ${label} — Sichtschutz Streifen (${ss.stripH}×${ss.stripW} cm)`, qty:ss.strips, unit:"Stk" });
+          privacyStripM_total += (ss.totalStripM || 0);
         }
       }
+
+      // Pfosten/Eckpfosten/Leisten als Gesamtsumme je Höhe
+      const heights = Array.from(new Set([ ...normalByH.keys(), ...cornersByH.keys(), ...stripsByH.keys() ])).sort((a,b)=>a-b);
+      for(const h of heights){
+        const n = normalByH.get(h)||0;
+        const e = cornersByH.get(h)||0;
+        const l = stripsByH.get(h)||0;
+        if(n>0) auto.push({ k:`auto_pfosten_${h}`, label:`Pfosten ${h} cm`, qty:n, unit:"Stk" });
+        if(e>0) auto.push({ k:`auto_eckpfosten_${h}`, label:`Eckpfosten ${h} cm`, qty:e, unit:"Stk" });
+        if(l>0) auto.push({ k:`auto_leisten_${h}`, label:`Pfostenleisten ${h} cm`, qty:l, unit:"Stk" });
+      }
+
+      // Sichtschutz Rollen gesamt
+      if(privacyStripM_total>0){
+        const rollLen = (c.privacyRollLen && Number(c.privacyRollLen)===50) ? 50 : 35;
+        const rolls = Math.ceil(privacyStripM_total / rollLen);
+        if(rolls>0) auto.push({ k:`auto_sichtschutz_rolls`, label:`Sichtschutz Rollen (${rollLen} m)`, qty: rolls, unit:"Stk" });
+      }
+
 
       if(corners>0){
         if(baseSystem==="Doppelstab"){
@@ -2788,3 +2848,5 @@ function refreshCustomerUI(){
     }
   });
 })();
+
+if(typeof btnUpdate!=="undefined" && btnUpdate){ btnUpdate.addEventListener("click", checkForUpdates); }

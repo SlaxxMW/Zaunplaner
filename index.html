@@ -319,7 +319,8 @@
       <button id="btnImportJson" class="btn" type="button">Import.json</button>
       <input id="fileImportJson" type="file" accept="application/json,.json" style="display:none" />
           <button class="btn small" id="btnCSV" type="button">Material CSV</button>
-          <button class="btn small bad" id="btnReset" type="button">Reset</button>
+          <button id="btnUpdate" class="btn" type="button">Update prüfen</button>
+      <button class="btn small bad" id="btnReset" type="button">Reset</button>
         </div>
       </div>
 
@@ -484,7 +485,9 @@
 
       <div id="chefSegmentsBox" class="card" style="margin-top:10px; display:none;">
         <div class="row" style="justify-content:space-between; align-items:center;">
-          <div style="font-weight:800;">📐 Zaunabschnitte</div>
+          <div style="font-weight:800;">📐 Zaunabschnitte</h3>
+    <div id="segModeHint" class="hint" style="display:none;margin:8px 0;padding:10px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);">Abschnitt-Modus aktiv: Bitte alle Zaun-Daten nur in den Abschnitten pflegen (Gesamtfelder sind deaktiviert).</div>
+    <h3></div>
           <div class="pill" id="chefSegmentsPill">—</div>
         </div>
         <div id="chefSegmentsList" style="margin-top:8px;"></div>
