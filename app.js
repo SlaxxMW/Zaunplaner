@@ -317,17 +317,15 @@ function setElectroExtrasVisible(det, sys, height){
       const litzeM = baseLen * litzeN;
       const drahtM = baseLen * drahtN;
       const bandM  = baseLen * bandN;
-      const boardsM = baseLen * boardsRows;
-
       const intervals = len ? Math.ceil(len / spacing) : 0;
       const posts = intervals ? (intervals + 1) : 0;
       const corners = clampInt(det.querySelector('input[data-k="corners"]')?.value || 0, 0, posts);
-      const normalPosts = Math.max(0, posts - corners);
 
-      const isoLD_normal = (litzeN + drahtN) * normalPosts;
-      const isoLD_corner = (litzeN + drahtN) * corners;
-      const isoBand_normal = bandN * normalPosts;
-      const isoBand_corner = bandN * corners;
+      // Bretter: pro Intervall ein Brett je Reihe; Reserve% addiert Stück (nicht Pfosten)
+      const boardsPiecesBase = intervals * boardsRows;
+      const boardsPieces = boardsPiecesBase ? Math.ceil(boardsPiecesBase * factor) : 0;
+      const boardsM = boardsPieces * spacing;
+
 
       if(out){
         const parts = [];
@@ -335,10 +333,7 @@ function setElectroExtrasVisible(det, sys, height){
         if(litzeN) parts.push(`Litze: ${fmt(litzeM)} m`);
         if(drahtN) parts.push(`Draht: ${fmt(drahtM)} m`);
         if(bandN)  parts.push(`Band: ${fmt(bandM)} m`);
-        if(boardsRows) parts.push(`Bretter: ${fmt(boardsM)} m`);
-        if(litzeN||drahtN||bandN){
-          parts.push(`Isolatoren: normal ${isoLD_normal + isoBand_normal} • eck ${isoLD_corner + isoBand_corner}`);
-        }
+        if(boardsRows) parts.push(`Bretter: ${boardsRows} Reihen → ${boardsPieces} Stk à ${fmt(spacing)} m (≈ ${fmt(boardsM)} m)`);
         out.textContent = parts.join(" • ");
       }
     }catch(_){ }
@@ -422,7 +417,7 @@ function setElectroExtrasVisible(det, sys, height){
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-    const APP_VERSION = "1.4.41b";
+    const APP_VERSION = "1.4.41c";
   const APP_BUILD = "2025-12-21";
 let state = { version:"1.4.33", selectedProjectId:null, projects:[], meta:{ lastSavedAt:"", lastBackupAt:"" } };
 
@@ -2225,8 +2220,7 @@ function computeTotals(c){
       let weideLitzeM_total = 0;
       let weideDrahtM_total = 0;
       let weideBandM_total = 0;
-      let weideBoardsM_total = 0;
-      let wIsoLD_normal = 0, wIsoLD_corner = 0, wIsoBand_normal = 0, wIsoBand_corner = 0;
+      const weideBoardsBySpacing = new Map();
 
 let privacyStripM_total = 0;
       const electroLitzeByRoll = new Map();
@@ -2321,15 +2315,16 @@ let privacyStripM_total = 0;
           const bandN  = clampInt(toNum(s.weideBand,0),  0, 50);
           const boardsRows = clampInt(toNum(s.weideBoards,0), 0, 50);
 
-          const litzeM = baseM * litzeN;
-          const drahtM = baseM * drahtN;
-          const bandM  = baseM * bandN;
-          const boardsM = baseM * boardsRows;
+          // Bretter: pro Intervall ein Brett je Reihe; Reserve% addiert Stück (nicht Pfosten)
+          const spacing = Math.max(1, toNum(s.weideSpacing, 3));
+          const intervals = len ? Math.ceil(len / spacing) : 0;
+          const boardsPiecesBase = intervals * boardsRows;
+          const boardsPieces = boardsPiecesBase ? Math.ceil(boardsPiecesBase * (1 + (extraPct/100))) : 0;
+          if(boardsPieces>0) weideBoardsBySpacing.set(spacing, (weideBoardsBySpacing.get(spacing)||0) + boardsPieces);
 
           weideLitzeM_total += litzeM;
           weideDrahtM_total += drahtM;
           weideBandM_total  += bandM;
-          weideBoardsM_total += boardsM;
 
           const litzeRoll = clampInt(toNum(s.weideLitzeRoll,400), 50, 5000);
           const drahtRoll = clampInt(toNum(s.weideDrahtRoll,625), 50, 5000);
@@ -2340,10 +2335,6 @@ let privacyStripM_total = 0;
           if(bandM>0)  weideBandByRoll.set(bandRoll,  (weideBandByRoll.get(bandRoll)||0)  + bandM);
 
           // Isolatoren: abhängig von Leiter-Art + Anzahl Pfosten/Ecken
-          wIsoLD_normal += (litzeN + drahtN) * normalPosts;
-          wIsoLD_corner += (litzeN + drahtN) * cornersSeg;
-          wIsoBand_normal += bandN * normalPosts;
-          wIsoBand_corner += bandN * cornersSeg;
 } else {
           normalByH.set(h, (normalByH.get(h)||0) + normalPosts);
           cornersByH.set(h, (cornersByH.get(h)||0) + cornersSeg);
@@ -2398,11 +2389,6 @@ let privacyStripM_total = 0;
         }
       }
 
-      // Weidezaun: Isolatoren (abhängig von Leiter-Art)
-      if(wIsoLD_normal>0) auto.push({ k:`auto_weide_iso_ld`, label:`Weidezaun Isolator (Litze/Draht)`, qty:wIsoLD_normal, unit:"Stk" });
-      if(wIsoLD_corner>0) auto.push({ k:`auto_weide_iso_ld_ecke`, label:`Weidezaun Eckisolator (Litze/Draht)`, qty:wIsoLD_corner, unit:"Stk" });
-      if(wIsoBand_normal>0) auto.push({ k:`auto_weide_iso_band`, label:`Weidezaun Breitband-Isolator bis 40 mm`, qty:wIsoBand_normal, unit:"Stk" });
-      if(wIsoBand_corner>0) auto.push({ k:`auto_weide_iso_band_ecke`, label:`Weidezaun Breitband-Eckisolator bis 40 mm`, qty:wIsoBand_corner, unit:"Stk" });
 
       // Elektrozaun: Isolatoren (abhängig von Leiter-Art)
       if(eIsoLD_normal>0) auto.push({ k:`auto_elektr_iso_ld`, label:`Elektrozaun Isolator (Litze/Draht)`, qty:eIsoLD_normal, unit:"Stk" });
@@ -2430,8 +2416,11 @@ let privacyStripM_total = 0;
       pushElectroCon('auto_weide_draht', 'Weidezaun Draht', weideDrahtM_total, weideDrahtByRoll);
       pushElectroCon('auto_weide_band',  'Weidezaun Band',  weideBandM_total,  weideBandByRoll);
 
-      if(weideBoardsM_total>0){
-        auto.push({ k:'auto_weide_bretter_m', label:'Weidezaun Bretter (Laufmeter)', qty: weideBoardsM_total, unit:'m' });
+      // Bretter (Weidezaun): Stück nach Pfostenabstand (mit Reserve%)
+      const bKeys = Array.from(weideBoardsBySpacing.keys()).sort((a,b)=>a-b);
+      for(const sp of bKeys){
+        const qty = weideBoardsBySpacing.get(sp)||0;
+        if(qty>0) auto.push({ k:`auto_weide_bretter_${String(sp).replace(".","_")}`, label:`Weidezaun Bretter (Stk à ${fmt(sp)} m)`, qty, unit:"Stk" });
       }
 
 
@@ -3383,7 +3372,7 @@ function refreshCustomerUI(){
                     <input data-k="weideBoards" inputmode="numeric" value="${s.weideBoards||""}" placeholder="0" />
                   </div>
                   <div class="hint" style="grid-column: span 2; display:flex; align-items:flex-end;">
-                    Bretter werden als Laufmeter gerechnet (wie Litzen), ohne Isolatoren.
+                    Bretter werden aus Pfostenabstand berechnet: Stück = Intervalle × Reihen (+ Reserve%). Keine Isolatoren.
                   </div>
                 </div>
                 <div class="jsWeideCalc hint" style="margin-top:8px;"></div>
