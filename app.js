@@ -6,6 +6,10 @@ let gateUiIdx=0; let gateCollapsed=false;
   window.addEventListener("error", (e)=>{
     try{
       console.error("[Zaunplaner JS-Error]", e.error || e.message || e);
+      try{
+        const arr = (window.__ZP_EARLY_ERRORS = window.__ZP_EARLY_ERRORS || []);
+        arr.push({at:new Date().toISOString(), type:"error", msg:String(e.message||e.error||e), stack:String((e.error && e.error.stack)||"")});
+      }catch(_){ }
       const t=document.getElementById("toast");
       if(t){
         t.style.display="block";
@@ -16,6 +20,10 @@ let gateUiIdx=0; let gateCollapsed=false;
   window.addEventListener("unhandledrejection", (e)=>{
     try{
       console.error("[Zaunplaner Promise-Error]", e.reason || e);
+      try{
+        const arr = (window.__ZP_EARLY_ERRORS = window.__ZP_EARLY_ERRORS || []);
+        arr.push({at:new Date().toISOString(), type:"promise", msg:String(e.reason||e), stack:String((e.reason && e.reason.stack)||"")});
+      }catch(_){ }
       const t=document.getElementById("toast");
       if(t){
         t.style.display="block";
@@ -154,10 +162,47 @@ let gateUiIdx=0; let gateCollapsed=false;
     }
   }
 
-function toast(a,b="") {
+  const btnUpdate = el("btnUpdate");
+  if(btnUpdate) btnUpdate.addEventListener("click", checkForUpdates);
+
+
+  function toast(a,b="") {
     toastEl.style.display="block";
     toastEl.textContent = b ? (a + " — " + b) : a;
     setTimeout(()=> toastEl.style.display="none", 2200);
+  }
+
+  // Simple Modal (für Import-Report / Fehler)
+  function showModal(title, bodyHtml, buttons=[]){
+    try{
+      const host = document.getElementById("modalHost");
+      const card = document.getElementById("modalCard");
+      if(!host || !card) return;
+      const btnHtml = (buttons||[]).map((b,i)=>{
+        const cls = b.cls || "btn";
+        return `<button data-mi="${i}" class="${cls}" type="button">${escapeHtml(b.label||"OK")}</button>`;
+      }).join("");
+      card.innerHTML = `
+        <div class="modalTitle">${escapeHtml(title||"")}</div>
+        <div class="modalBody">${bodyHtml||""}</div>
+        <div class="modalBtns">${btnHtml || '<button data-mi="0" class="btn" type="button">OK</button>'}</div>
+      `;
+      host.style.display = "flex";
+      card.querySelectorAll("button[data-mi]").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const idx = Number(btn.getAttribute("data-mi"));
+          try{ (buttons[idx] && buttons[idx].onClick) && buttons[idx].onClick(); }catch(_){ }
+          hideModal();
+        });
+      });
+      host.addEventListener("click", (e)=>{ if(e && e.target===host) hideModal(); }, {once:true});
+    }catch(_){ }
+  }
+  function hideModal(){
+    try{
+      const host = document.getElementById("modalHost");
+      if(host) host.style.display = "none";
+    }catch(_){ }
   }
   const fmt = (n) => {
     const x = Number(n);
@@ -223,6 +268,35 @@ function setElectroExtrasVisible(det, sys, height){
       const ba = det.querySelector('input[data-k="electroBand"]');
       if(ba && !String(ba.value||"").trim()) ba.value = "0";
 
+      // Nur 1 Leiter-Art anzeigen (Litze/Draht/Band)
+      const typeSel = det.querySelector('select[data-k="electroType"]');
+      const liNow = clampInt(det.querySelector('input[data-k="electroLitze"]')?.value || 0, 0, 50);
+      const drNow = clampInt(det.querySelector('input[data-k="electroDraht"]')?.value || 0, 0, 50);
+      const baNow = clampInt(det.querySelector('input[data-k="electroBand"]')?.value || 0, 0, 50);
+
+      const pick = ()=>{
+        if(baNow>0) return "band";
+        if(drNow>0) return "draht";
+        return "litze";
+      };
+
+      const type = typeSel ? String(typeSel.value||"") : "";
+      const want = (type==="litze"||type==="draht"||type==="band") ? type : pick();
+      if(typeSel) typeSel.value = want;
+
+      // show/hide groups
+      det.querySelectorAll(".jsEType").forEach(el=>{ el.style.display = "none"; });
+      det.querySelectorAll(".jsEType_"+want).forEach(el=>{ el.style.display = ""; });
+
+      // Zero-out other conductor counts so only 1 is calculated
+      const setNum = (k, v)=>{
+        const el = det.querySelector(`input[data-k="${k}"]`);
+        if(el) el.value = String(v);
+      };
+      if(want==="litze"){ setNum("electroDraht",0); setNum("electroBand",0); }
+      if(want==="draht"){ setNum("electroLitze",0); setNum("electroBand",0); }
+      if(want==="band"){  setNum("electroLitze",0); setNum("electroDraht",0); }
+
       const lr = det.querySelector('select[data-k="electroLitzeRoll"]');
       if(lr && !String(lr.value||"").trim()) lr.value = "400";
       const rr = det.querySelector('select[data-k="electroDrahtRoll"]');
@@ -274,19 +348,49 @@ function setElectroExtrasVisible(det, sys, height){
     if(!det) return;
     const isWood = (normSystem(sys)==="Holz");
 
-    // Toggle-Block nur bei Holz
+    // Holz-Block nur bei Holz
     det.querySelectorAll(".jsWoodOnly").forEach(n=>{
       n.style.display = isWood ? "" : "none";
     });
+    if(!isWood) return;
 
-    const cb = det.querySelector('input[data-k="woodIsWeide"]');
-    const isWeide = !!(isWood && cb && cb.checked);
+    // Neue Holz/Weide-Auswahl (fallback: alte Checkbox)
+    const selClass = det.querySelector('select[data-k="woodClass"]');
+    const selBuild = det.querySelector('select[data-k="woodBuild"]');
+    const legacyCb = det.querySelector('input[data-k="woodIsWeide"]');
 
-    det.querySelectorAll(".jsWeideOnly").forEach(n=>{
-      n.style.display = isWeide ? "" : "none";
+    const woodClass = selClass ? String(selClass.value||"holz")
+      : ((legacyCb && legacyCb.checked) ? "weide" : "holz");
+    const woodBuild = selBuild ? String(selBuild.value||"fields")
+      : (woodClass==="weide" ? "boards" : "fields");
+
+    const boardsOn = (woodClass==="weide" || woodBuild==="boards");
+
+    // Bretter/Riegel UI
+    det.querySelectorAll(".jsWoodBoardsOnly").forEach(n=>{
+      n.style.display = boardsOn ? "" : "none";
     });
 
-    // Calc aktualisieren/leer machen
+    // Sichtschutz bei Weide ausblenden/abschalten (kein Sichtschutz/Beton hier)
+    const priv = det.querySelector('select[data-k="privacy"]');
+    if(priv){
+      if(woodClass==="weide"){
+        priv.value = "no";
+        priv.disabled = true;
+      }else{
+        priv.disabled = false;
+      }
+    }
+
+    // Legacy: Leiter/Litze/Draht/Band bei Bretter-Modus immer auf 0
+    if(boardsOn){
+      const z = (k)=>{
+        const el = det.querySelector(`input[data-k="${k}"]`);
+        if(el) el.value = "0";
+      };
+      ["weideLitze","weideDraht","weideBand"].forEach(z);
+    }
+
     try{ updateWeideCalc(det); }catch(_){ }
   }
 
@@ -296,10 +400,21 @@ function setElectroExtrasVisible(det, sys, height){
       const sys = det.querySelector('select[data-k="system"]') ? String(det.querySelector('select[data-k="system"]').value||"") : "";
       if(normSystem(sys)!=="Holz") return;
 
-      const cb = det.querySelector('input[data-k="woodIsWeide"]');
       const out = det.querySelector('.jsWeideCalc');
-      if(!cb || !cb.checked){
-        if(out) out.textContent = "";
+      if(!out) return;
+
+      const selClass = det.querySelector('select[data-k="woodClass"]');
+      const selBuild = det.querySelector('select[data-k="woodBuild"]');
+      const legacyCb = det.querySelector('input[data-k="woodIsWeide"]');
+
+      const woodClass = selClass ? String(selClass.value||"holz")
+        : ((legacyCb && legacyCb.checked) ? "weide" : "holz");
+      const woodBuild = selBuild ? String(selBuild.value||"fields")
+        : (woodClass==="weide" ? "boards" : "fields");
+
+      const boardsOn = (woodClass==="weide" || woodBuild==="boards");
+      if(!boardsOn){
+        out.textContent = "";
         return;
       }
 
@@ -308,37 +423,24 @@ function setElectroExtrasVisible(det, sys, height){
       const extraPct = toNum(det.querySelector('input[data-k="weideExtraPct"]')?.value || "", 10);
       const factor = 1 + (extraPct/100);
 
-      const litzeN = clampInt(det.querySelector('input[data-k="weideLitze"]')?.value || 0, 0, 20);
-      const drahtN = clampInt(det.querySelector('input[data-k="weideDraht"]')?.value || 0, 0, 20);
-      const bandN  = clampInt(det.querySelector('input[data-k="weideBand"]')?.value  || 0, 0, 20);
-      const boardsRows = clampInt(det.querySelector('input[data-k="weideBoards"]')?.value || 0, 0, 20);
-
-      const baseLen = len * factor;
-      const litzeM = baseLen * litzeN;
-      const drahtM = baseLen * drahtN;
-      const bandM  = baseLen * bandN;
       const intervals = len ? Math.ceil(len / spacing) : 0;
       const posts = intervals ? (intervals + 1) : 0;
       const corners = clampInt(det.querySelector('input[data-k="corners"]')?.value || 0, 0, posts);
 
-      // Bretter: pro Intervall ein Brett je Reihe; Reserve% addiert Stück (nicht Pfosten)
-      const boardsPiecesBase = intervals * boardsRows;
+      const rows = clampInt(det.querySelector('input[data-k="weideBoards"]')?.value || 0, 0, 50);
+      const boardsPiecesBase = intervals * rows;
       const boardsPieces = boardsPiecesBase ? Math.ceil(boardsPiecesBase * factor) : 0;
-      const boardsM = boardsPieces * spacing;
 
-
-      if(out){
-        const parts = [];
-        parts.push(`Pfosten: ${posts} (Ecken ${corners})`);
-        if(litzeN) parts.push(`Litze: ${fmt(litzeM)} m`);
-        if(drahtN) parts.push(`Draht: ${fmt(drahtM)} m`);
-        if(bandN)  parts.push(`Band: ${fmt(bandM)} m`);
-        if(boardsRows) parts.push(`Bretter: ${boardsRows} Reihen → ${boardsPieces} Stk à ${fmt(spacing)} m (≈ ${fmt(boardsM)} m)`);
-        out.textContent = parts.join(" • ");
+      const parts = [];
+      parts.push(`Pfosten: ${posts} (Ecken ${corners})`);
+      if(rows){
+        parts.push(`Bretter/Riegel: ${rows} Reihen → ${boardsPieces} Stk à ${fmt(spacing)} m`);
+      }else{
+        parts.push(`Bretter/Riegel: (Reihen fehlt)`);
       }
+      out.textContent = parts.join(" • ");
     }catch(_){ }
   }
-
 
 
   function updateElectroCalc(det){
@@ -390,36 +492,195 @@ function setElectroExtrasVisible(det, sys, height){
   function applyElectroPreset(det, key){
     try{
       if(!det || !key) return;
-      const p = ELECTRO_PRESETS[key];
+      const p = ELECTRO_PRESETS[String(key||"")];
       if(!p) return;
 
-      const set = (sel, val)=>{
-        const el = det.querySelector(sel);
-        if(el) el.value = (val===undefined || val===null) ? "" : String(val);
+      // Auswahl: nur 1 Leiter-Art (Litze/Draht/Band)
+      const typeSel = det.querySelector('select[data-k="electroType"]');
+      let type = "litze";
+      if((p.band||0) > 0) type = "band";
+      else if((p.draht||0) > 0) type = "draht";
+      else type = "litze";
+      if(typeSel) typeSel.value = type;
+
+      const setNum = (k, val)=>{
+        const el = det.querySelector(`input[data-k="${k}"]`);
+        if(el) el.value = String(val);
       };
 
-      set('input[data-k="electroLitze"]', p.litze);
-      set('input[data-k="electroDraht"]', p.draht);
-      set('input[data-k="electroBand"]',  p.band);
+      setNum("electroSpacing", p.spacing||3);
+      setNum("electroExtraPct", p.extra||10);
 
-      // these live in the segment header area (jsElectroOnly is shown/hidden by system)
-      set('input[data-k="electroSpacing"]',  p.spacing);
-      set('input[data-k="electroExtraPct"]', p.extraPct);
+      setNum("electroLitze", (type==="litze") ? (p.litze||0) : 0);
+      setNum("electroDraht", (type==="draht") ? (p.draht||0) : 0);
+      setNum("electroBand",  (type==="band")  ? (p.band||0)  : 0);
 
+      setNum("electroLitzeRoll", p.litzeRoll||200);
+      setNum("electroDrahtRoll", p.drahtRoll||625);
+      setNum("electroBandRoll",  p.bandRoll||200);
+
+      try{ setElectroExtrasVisible(det, "Elektrozaun", 160); }catch(_){}
       try{ updateElectroCalc(det); }catch(_){}
-    }catch(_){}
-  }
+    }catch(e){
+      console.warn("applyElectroPreset failed", e);
+    }
+  };
 
+      
 
-
-
-  function escapeHtml(s) {
+function escapeHtml(s) {
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-    const APP_VERSION = "1.4.41c";
-  const APP_BUILD = "2025-12-21";
-let state = { version:"1.4.33", selectedProjectId:null, projects:[], meta:{ lastSavedAt:"", lastBackupAt:"" } };
+  const APP_VERSION = "1.4.42";
+  const APP_BUILD = "2025-12-22";
+  const APP_NAME = "Zaunteam Zaunplaner";
+
+  // Default-Settings (offline-first, kein Tracking)
+  const DEFAULT_SETTINGS = {
+    shareOnExport: true,
+    supportEmail: "",
+    // vorbereitet (ohne Zwang)
+    reminderPrep: false
+  };
+
+  // Globaler State
+  let state = {
+    version: APP_VERSION,
+    selectedProjectId: null,
+    projects: [],
+    settings: {...DEFAULT_SETTINGS},
+    meta: { lastSavedAt:"", lastBackupAt:"", logs:[] }
+  };
+
+  /******************************************************************
+   * Lokales Logging (nur lokal, keine Analytics)
+   ******************************************************************/
+  const EARLY_LOGS = [];
+  function logEvent(type, msg, data){
+    try{
+      const entry = {
+        at: nowISO(),
+        type: String(type||"info"),
+        msg: String(msg||""),
+        data: (data===undefined) ? "" : (()=>{ try{ return JSON.stringify(data).slice(0,1200); }catch(_){ return String(data).slice(0,1200); } })()
+      };
+      if(state && state.meta){
+        if(!Array.isArray(state.meta.logs)) state.meta.logs = [];
+        state.meta.logs.push(entry);
+        if(state.meta.logs.length>250) state.meta.logs = state.meta.logs.slice(-200);
+      }else{
+        EARLY_LOGS.push(entry);
+        if(EARLY_LOGS.length>80) EARLY_LOGS.splice(0, EARLY_LOGS.length-60);
+      }
+    }catch(_){ }
+  }
+  function flushEarlyLogs(){
+    try{
+      try{
+        const ee = window.__ZP_EARLY_ERRORS;
+        if(Array.isArray(ee) && ee.length){
+          for(const it of ee) EARLY_LOGS.push(it);
+          ee.length = 0;
+        }
+      }catch(_){ }
+      if(!EARLY_LOGS.length) return;
+      if(!state.meta) state.meta = {lastSavedAt:"", lastBackupAt:"", logs:[]};
+      if(!Array.isArray(state.meta.logs)) state.meta.logs = [];
+      state.meta.logs = state.meta.logs.concat(EARLY_LOGS).slice(-200);
+      EARLY_LOGS.length = 0;
+    }catch(_){ }
+  }
+
+  /******************************************************************
+   * PERSISTENZ-GUARD
+   *
+   * Manche Browser/Setups (z.B. iOS Safari "Privat" oder lokale file://-Öffnung)
+   * verlieren localStorage oder blockieren ihn teilweise. Dann wirkt es so,
+   * als würden "Kunden nicht gespeichert".
+   *
+   * Lösung:
+   * 1) localStorage-Schreibtest + sichtbarer Hinweis (Speicher AUS)
+   * 2) zusätzlich IndexedDB als Fallback-Backup (wenn verfügbar)
+   ******************************************************************/
+
+  function storageTest(){
+    try{
+      const k="__zp_test__";
+      localStorage.setItem(k,"1");
+      const ok = (localStorage.getItem(k)==="1");
+      localStorage.removeItem(k);
+      return ok;
+    }catch(e){
+      return false;
+    }
+  }
+
+  let STORAGE_OK = storageTest();
+  let STORAGE_WARNED = false;
+
+  // IndexedDB Mini-KV
+  const IDB_NAME = "zaunteam_zaunplaner_db";
+  const IDB_STORE = "kv";
+
+  function idbOpen(){
+    return new Promise((resolve,reject)=>{
+      try{
+        if(!window.indexedDB) return resolve(null);
+        const req = indexedDB.open(IDB_NAME, 1);
+        req.onupgradeneeded = ()=>{
+          try{
+            const db = req.result;
+            if(!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+          }catch(e){}
+        };
+        req.onsuccess = ()=> resolve(req.result);
+        req.onerror = ()=> resolve(null);
+      }catch(e){
+        resolve(null);
+      }
+    });
+  }
+
+  async function idbSet(key, value){
+    try{
+      const db = await idbOpen();
+      if(!db) return false;
+      return await new Promise((resolve)=>{
+        const tx = db.transaction(IDB_STORE, "readwrite");
+        const st = tx.objectStore(IDB_STORE);
+        const r = st.put(value, key);
+        r.onsuccess = ()=> resolve(true);
+        r.onerror = ()=> resolve(false);
+      });
+    }catch(e){
+      return false;
+    }
+  }
+
+  async function idbGet(key){
+    try{
+      const db = await idbOpen();
+      if(!db) return null;
+      return await new Promise((resolve)=>{
+        const tx = db.transaction(IDB_STORE, "readonly");
+        const st = tx.objectStore(IDB_STORE);
+        const r = st.get(key);
+        r.onsuccess = ()=> resolve(r.result ?? null);
+        r.onerror = ()=> resolve(null);
+      });
+    }catch(e){
+      return null;
+    }
+  }
+
+  function warnStorageOnce(){
+    if(STORAGE_WARNED) return;
+    STORAGE_WARNED = true;
+    try{
+      toast("⚠️ Speichern ist gerade nicht dauerhaft möglich", "Bitte als Web-App öffnen (https) oder Backup nutzen");
+    }catch(e){}
+  }
 
   function blankProject(name) {
     return {
@@ -442,45 +703,102 @@ let state = { version:"1.4.33", selectedProjectId:null, projects:[], meta:{ last
     };
   }
 
-  function save()
- {
+  function isValidState(s){
     try{
-      if(!state.meta) state.meta = {};
-      state.meta.lastSavedAt = nowISO();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      // safety: keep last known good state to recover from JS bugs/crashes
-      if(state && Array.isArray(state.projects) && state.projects.length){
-        localStorage.setItem(STORAGE_KEY+"_lastgood", JSON.stringify(state));
+      if(!s || typeof s !== "object") return false;
+      if(!Array.isArray(s.projects)) return false;
+      // mind. Struktur prüfen (keine harten Regeln, damit alte Backups noch gehen)
+      return true;
+    }catch(_){ return false; }
+  }
+
+  function save(){
+    try{ flushEarlyLogs(); }catch(_){ }
+
+    // Defaults sicherstellen
+    if(!state.settings) state.settings = {...DEFAULT_SETTINGS};
+    else state.settings = {...DEFAULT_SETTINGS, ...(state.settings||{})};
+    if(!state.meta) state.meta = {lastSavedAt:"", lastBackupAt:"", logs:[]};
+    if(!Array.isArray(state.meta.logs)) state.meta.logs = [];
+
+    // Timestamp wird mitgespeichert
+    state.meta.lastSavedAt = nowISO();
+
+    if(!isValidState(state)){
+      STORAGE_OK = false;
+      warnStorageOnce();
+      logEvent("error", "Save blocked: invalid state", {hasProjects:Array.isArray(state && state.projects), version:state && state.version});
+      return;
+    }
+
+    const payload = (()=>{ try{ return JSON.stringify(state); }catch(e){ return null; }})();
+    if(!payload){
+      STORAGE_OK = false;
+      warnStorageOnce();
+      logEvent("error", "Save blocked: JSON stringify failed");
+      return;
+    }
+
+    // localStorage write-through + verify
+    try{
+      localStorage.setItem(STORAGE_KEY, payload);
+      const back = localStorage.getItem(STORAGE_KEY);
+      if(back !== payload){
+        STORAGE_OK = false;
+        warnStorageOnce();
+        logEvent("warn", "localStorage verify mismatch");
       }
-    }catch(e){}
+      // Safety: last known good
+      if(state.projects && state.projects.length){
+        try{ localStorage.setItem(STORAGE_KEY+"_lastgood", payload); }catch(_){ }
+      }
+    }catch(e){
+      STORAGE_OK = false;
+      warnStorageOnce();
+      logEvent("warn", "localStorage write failed", {err:String(e && e.message || e)});
+    }
+
+    // IndexedDB mirror (robust gegen iOS localStorage-Glitches)
+    try{ idbSet("state", payload); }catch(_){ }
+
     updateStatusPill();
-    try{ renderProjectOverview(); }catch(e){}
+    try{ renderProjectOverview(); }catch(_){ }
   }
 
   function migrateLegacy() {
-    const stable = localStorage.getItem(STORAGE_KEY);
+    let stable = null;
+    try{ stable = localStorage.getItem(STORAGE_KEY); }catch(e){ STORAGE_OK = false; warnStorageOnce(); stable = null; }
     if(stable) {
       try {
         const s = JSON.parse(stable);
-        if(s && Array.isArray(s.projects)) { state = {...state, ...s, version:APP_VERSION}; if(!state.meta) state.meta={ lastSavedAt:"", lastBackupAt:"" }; return; }
+        if(s && Array.isArray(s.projects)) {
+          state = {...state, ...s, version:APP_VERSION};
+          state.settings = {...DEFAULT_SETTINGS, ...(s.settings||{})};
+          if(!state.meta) state.meta={ lastSavedAt:"", lastBackupAt:"", logs:[] };
+          if(!Array.isArray(state.meta.logs)) state.meta.logs=[];
+          return;
+        }
       } catch(e){}
     }
     
     // Recovery: wenn durch Bug/Crash leer gespeichert wurde, versuche "lastgood" wiederherzustellen
     try{
-      const lg = localStorage.getItem(STORAGE_KEY+"_lastgood");
+      const lg = (()=>{ try{ return localStorage.getItem(STORAGE_KEY+"_lastgood"); }catch(e){ return null; }})();
       if(lg){
         const s2 = JSON.parse(lg);
         if(s2 && Array.isArray(s2.projects) && s2.projects.length && (!state.projects || !state.projects.length)){
           state = {...state, ...s2, version:APP_VERSION};
+          state.settings = {...DEFAULT_SETTINGS, ...(s2.settings||state.settings||{})};
+          if(!state.meta) state.meta={ lastSavedAt:"", lastBackupAt:"", logs:[] };
+          if(!Array.isArray(state.meta.logs)) state.meta.logs=[];
           // nicht sofort überschreiben – nur anzeigen
           setTimeout(()=>{ try{ toast("✅ Kunden wiederhergestellt (Backup)"); }catch(e){} }, 50);
           return;
         }
       }
     }catch(e){}
-for(const k of LEGACY_KEYS) {
-      const raw = localStorage.getItem(k);
+    for(const k of LEGACY_KEYS) {
+      const raw = (()=>{ try{ return localStorage.getItem(k); }catch(e){ return null; }})();
       if(!raw) continue;
       try {
         const s = JSON.parse(raw);
@@ -533,7 +851,8 @@ for(const k of LEGACY_KEYS) {
     demo.plannedDate = "2025-12-16";
     state.projects = [demo];
     state.selectedProjectId = demo.id;
-    save();
+    // Wenn Storage blockiert ist, nicht sofort überschreiben.
+    if(STORAGE_OK) save();
   }
 
   function currentProject() {
@@ -542,12 +861,13 @@ for(const k of LEGACY_KEYS) {
 
   function updateStatusPill() {
     const p = currentProject();
-    el("statusPill").textContent = p ? (`aktiv: ${p.title} • ${p.status}`) : "kein Kunde";
+    const base = p ? (`aktiv: ${p.title} • ${p.status}`) : "kein Kunde";
+    el("statusPill").textContent = STORAGE_OK ? base : (base + " • ⚠️ Speicher AUS");
     const vp = el("verPill");
     if(vp){
       const v = (state && state.version) ? state.version : APP_VERSION;
       vp.textContent = "v" + v;
-      vp.title = "Zaunplaner v" + v + " • Build " + APP_BUILD;
+      vp.title = "Zaunplaner v" + v + " • Build " + APP_BUILD + (STORAGE_OK ? "" : " • Speicher AUS (Backup nutzen)");
     // Save/Backup status
     const sp = el("savePill");
     const bp = el("backupPill");
@@ -573,6 +893,74 @@ for(const k of LEGACY_KEYS) {
   // Header Refresh (safe alias)
   function refreshHeader(){
     updateStatusPill();
+  }
+
+  function refreshSettingsUI(){
+    try{
+      if(!state.settings) state.settings = {...DEFAULT_SETTINGS};
+      const box = el("storageStatusBox");
+      const pill = el("storagePill");
+      const isHttps = (location.protocol === "https:");
+      const isFile = (location.protocol === "file:");
+      const standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || !!(window.navigator && window.navigator.standalone);
+      const projCount = Array.isArray(state.projects) ? state.projects.length : 0;
+      const lastS = (state.meta && state.meta.lastSavedAt) ? state.meta.lastSavedAt : "";
+      const lastB = (state.meta && state.meta.lastBackupAt) ? state.meta.lastBackupAt : "";
+      const env = `${isHttps?"https":""}${isFile?"file":""}${(!isHttps && !isFile)?location.protocol.replace(':',''):""}`;
+      const storageLine = STORAGE_OK ? "✅ Speicher OK" : "⚠️ Speicher unsicher (Backup nutzen)";
+      if(pill) pill.textContent = storageLine;
+      if(box){
+        box.innerHTML = `
+          <div><b>${storageLine}</b></div>
+          <div class="hint" style="margin-top:6px;">
+            Modus: <b>${standalone?"Installiert (PWA)":"Browser"}</b> • Protokoll: <b>${escapeHtml(env)}</b><br>
+            Projekte: <b>${projCount}</b><br>
+            Letztes Speichern: <b>${escapeHtml(lastS||"—")}</b><br>
+            Letztes Backup: <b>${escapeHtml(lastB||"—")}</b>
+          </div>
+        `;
+      }
+
+      const sh = el("setShareOnExport");
+      if(sh) sh.checked = !(state.settings && state.settings.shareOnExport===false);
+
+      const se = el("setSupportEmail");
+      if(se && document.activeElement!==se) se.value = String(state.settings.supportEmail||"");
+
+      const info = el("supportInfo");
+      if(info){
+        info.innerHTML = `Version: <b>${escapeHtml(APP_VERSION)}</b> • Build: <b>${escapeHtml(APP_BUILD)}</b>`;
+      }
+      const btnMail = el("btnSupportMail");
+      if(btnMail){
+        const m = String(state.settings.supportEmail||"").trim();
+        btnMail.disabled = !m;
+      }
+
+      const logBox = el("logBox");
+      if(logBox){
+        const logs = (state.meta && Array.isArray(state.meta.logs)) ? state.meta.logs.slice(-20).reverse() : [];
+        logBox.innerHTML = logs.length ? logs.map(l=>`<div class="hint">${escapeHtml(l.at||"")} — <b>${escapeHtml(l.type||"")}</b>: ${escapeHtml(l.msg||"")}</div>`).join("") : `<div class="hint">(keine Logs)</div>`;
+      }
+    }catch(_){ }
+  }
+
+  async function runStorageSelfTest(){
+    const lines=[];
+    try{
+      const k = "__zp_test__"+Math.random().toString(36).slice(2);
+      localStorage.setItem(k, "1");
+      const ok = localStorage.getItem(k)==="1";
+      localStorage.removeItem(k);
+      lines.push(`localStorage: ${ok?"OK":"FAIL"}`);
+    }catch(e){ lines.push(`localStorage: FAIL (${String(e && e.message || e)})`); }
+    try{
+      const t = `test_${Date.now()}`;
+      const w = await idbSet(t, "ok");
+      const r = await idbGet(t);
+      lines.push(`IndexedDB: ${(w && r==="ok")?"OK":"FAIL"}`);
+    }catch(e){ lines.push(`IndexedDB: FAIL (${String(e && e.message || e)})`); }
+    showModal("Speicher-Selbsttest", `<div class="hint">${escapeHtml(lines.join("\n")).replace(/\n/g,"<br>")}</div>`, [{label:"OK", cls:"btn green"}]);
   }
 
 
@@ -1181,8 +1569,20 @@ function computeTotals(c){
       for(const s of segs){
         const len = Math.max(0, toNum(s.length ?? s.lengthM, 0));
         const sys = normSystem((s.system||c.system||"Doppelstab"));
-        const isWeide = (sys==="Holz" && !!s.woodIsWeide);
+        const isWeide = (sys==="Holz" && (String(s.woodClass||"")==="weide" || !!s.woodIsWeide));
         if(sys==="Elektrozaun" || isWeide) { started = true; continue; }
+
+        // Holzzaun Bretter/Riegel: Pfosten nach Abstand (aber Beton wird berechnet)
+        const woodBuild = String(s.woodBuild||"");
+        if(sys==="Holz" && woodBuild==="boards"){
+          const spacing = Math.max(1, toNum(s.weideSpacing, 3));
+          const intervals = len ? Math.ceil(len / spacing) : 0;
+          if(!intervals) { started = true; continue; }
+          const posts = intervals + (!started ? 1 : 0);
+          normalHoles += posts;
+          started = true;
+          continue;
+        }
 
         const panels = len ? Math.ceil(len / PANEL_W) : 0;
         if(!panels) { started = true; continue; }
@@ -1627,11 +2027,35 @@ function computeTotals(c){
 
   function downloadText(text, filename, mime="text/plain"){
     const blob=new Blob([text], {type:mime+";charset=utf-8"});
+
     const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");
-    a.href=url; a.download=filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 800);
+    const doAnchor = ()=>{
+      try{
+        const a=document.createElement("a");
+        a.href=url; a.download=filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url), 1200);
+      }catch(e){
+        try{ window.open(url, "_blank"); }catch(_){}
+        setTimeout(()=>URL.revokeObjectURL(url), 4000);
+      }
+    };
+
+    // iOS/Safari kann das Download-Attribut blocken → Datei teilen als Fallback
+    const shareWanted = (()=>{ try{ return !(state && state.settings && state.settings.shareOnExport===false); }catch(_){ return true; } })();
+    try{
+      if(shareWanted && navigator && navigator.share && navigator.canShare){
+        const file = new File([blob], filename, {type:mime});
+        if(navigator.canShare({files:[file]})){
+          navigator.share({files:[file], title: filename}).catch(()=>{ doAnchor(); });
+          return;
+        }
+      }
+    }catch(_){}
+
+    doAnchor();
   }
   function fileSafe(name){ return String(name||"Datei.txt").replace(/[\/:*?"<>|]+/g,"_").trim(); }
 
@@ -2222,6 +2646,10 @@ function computeTotals(c){
       let weideBandM_total = 0;
       const weideBoardsBySpacing = new Map();
 
+      const holzBoardsNormal = new Map();
+      const holzBoardsCorners = new Map();
+      const holzBoardsBySpacing = new Map();
+
 let privacyStripM_total = 0;
       const electroLitzeByRoll = new Map();
       const electroDrahtByRoll = new Map();
@@ -2245,7 +2673,7 @@ let privacyStripM_total = 0;
           const intervals = len ? Math.ceil(len / spacing) : 0;
           if(!intervals) continue;
           posts = intervals + (!started ? 1 : 0);
-        } else if(normSystem(sys)==="Holz" && !!s.woodIsWeide){
+        } else if(normSystem(sys)==="Holz" && (String(s.woodClass||"")==="weide" || !!s.woodIsWeide || String(s.woodBuild||"")==="boards")){
           const spacing = Math.max(1, toNum(s.weideSpacing, 3));
           const intervals = len ? Math.ceil(len / spacing) : 0;
           if(!intervals) continue;
@@ -2261,7 +2689,7 @@ let privacyStripM_total = 0;
         const normalPosts = Math.max(0, posts - cornersSeg);
         // Matten/Elemente nur bei NICHT-Elektrozaun (Elektrozaun hat Stromleiter statt Matten)
         const sysObj = { system: sys, height: h };
-        if(normSystem(sys)!=="Elektrozaun" && !(normSystem(sys)==="Holz" && !!s.woodIsWeide)){
+        if(normSystem(sys)!=="Elektrozaun" && !(normSystem(sys)==="Holz" && (String(s.woodClass||"")==="weide" || !!s.woodIsWeide || String(s.woodBuild||"")==="boards"))){
           const matLbl = `Abschnitt ${label} — ${sysLabel(sysObj)}`;
           auto.push({ k:`auto_matten_${label}`, label: matLbl, qty: panels, unit:"Stk" });
         }
@@ -2301,12 +2729,22 @@ let privacyStripM_total = 0;
           eIsoBand_normal += bandN * normalPosts;
           eIsoBand_corner += bandN * cornersSeg;
 
-        } else if(normSystem(sys)==="Holz" && !!s.woodIsWeide){
+        } else if(normSystem(sys)==="Holz" && (String(s.woodClass||"")==="weide" || !!s.woodIsWeide || String(s.woodBuild||"")==="boards")){
+          const woodClass = (String(s.woodClass||"") || ((!!s.woodIsWeide) ? "weide" : "holz"));
+
+          const isWeide = (woodClass==="weide");
+
           const wood = String(s.weideWood||"Robinie").trim() || "Robinie";
           const pLen = clampInt(toNum(s.weidePostLen,0) || (h+60), 120, 400);
           const key = `${pLen} cm • ${wood}`;
-          weideNormal.set(key, (weideNormal.get(key)||0) + normalPosts);
-          weideCorners.set(key, (weideCorners.get(key)||0) + cornersSeg);
+
+          const mapNormal = isWeide ? weideNormal : holzBoardsNormal;
+
+          const mapCorner = isWeide ? weideCorners : holzBoardsCorners;
+
+          const boardsMap = isWeide ? weideBoardsBySpacing : holzBoardsBySpacing;
+          mapNormal.set(key, (weideNormal.get(key)||0) + normalPosts);
+          mapCorner.set(key, (weideCorners.get(key)||0) + cornersSeg);
 
           const extraPct = toNum(s.weideExtraPct, 10);
           const baseM = len * (1 + (extraPct/100));
@@ -2315,12 +2753,16 @@ let privacyStripM_total = 0;
           const bandN  = clampInt(toNum(s.weideBand,0),  0, 50);
           const boardsRows = clampInt(toNum(s.weideBoards,0), 0, 50);
 
+          const litzeM = baseM * litzeN;
+          const drahtM = baseM * drahtN;
+          const bandM  = baseM * bandN;
+
           // Bretter: pro Intervall ein Brett je Reihe; Reserve% addiert Stück (nicht Pfosten)
           const spacing = Math.max(1, toNum(s.weideSpacing, 3));
           const intervals = len ? Math.ceil(len / spacing) : 0;
           const boardsPiecesBase = intervals * boardsRows;
           const boardsPieces = boardsPiecesBase ? Math.ceil(boardsPiecesBase * (1 + (extraPct/100))) : 0;
-          if(boardsPieces>0) weideBoardsBySpacing.set(spacing, (weideBoardsBySpacing.get(spacing)||0) + boardsPieces);
+          if(boardsPieces>0) boardsMap.set(spacing, (weideBoardsBySpacing.get(spacing)||0) + boardsPieces);
 
           weideLitzeM_total += litzeM;
           weideDrahtM_total += drahtM;
@@ -2390,6 +2832,19 @@ let privacyStripM_total = 0;
       }
 
 
+      // Holzzaun (Bretter/Riegel): Pfosten/Eckpfosten
+      if(holzBoardsNormal.size || holzBoardsCorners.size){
+        const allKeys = Array.from(new Set([...(holzBoardsNormal?holzBoardsNormal.keys():[]), ...(holzBoardsCorners?holzBoardsCorners.keys():[])])).sort((a,b)=> String(a).localeCompare(String(b), "de"));
+        for(const key of allKeys){
+          const n = holzBoardsNormal.get(key)||0;
+          const e = holzBoardsCorners.get(key)||0;
+          const slug = String(key).toLowerCase().replace(/[^a-z0-9]+/g,"_").slice(0,40);
+          if(n>0) auto.push({ k:`auto_holz_boards_pfosten_${slug}`, label:`Holzzaun Pfosten ${key}`, qty:n, unit:"Stk" });
+          if(e>0) auto.push({ k:`auto_holz_boards_eckpfosten_${slug}`, label:`Holzzaun Eckpfosten (verstärkt) ${key}`, qty:e, unit:"Stk" });
+        }
+      }
+
+
       // Elektrozaun: Isolatoren (abhängig von Leiter-Art)
       if(eIsoLD_normal>0) auto.push({ k:`auto_elektr_iso_ld`, label:`Elektrozaun Isolator (Litze/Draht)`, qty:eIsoLD_normal, unit:"Stk" });
       if(eIsoLD_corner>0) auto.push({ k:`auto_elektr_iso_ld_ecke`, label:`Elektrozaun Eckisolator (Litze/Draht)`, qty:eIsoLD_corner, unit:"Stk" });
@@ -2416,11 +2871,18 @@ let privacyStripM_total = 0;
       pushElectroCon('auto_weide_draht', 'Weidezaun Draht', weideDrahtM_total, weideDrahtByRoll);
       pushElectroCon('auto_weide_band',  'Weidezaun Band',  weideBandM_total,  weideBandByRoll);
 
-      // Bretter (Weidezaun): Stück nach Pfostenabstand (mit Reserve%)
+      // Bretter/Riegel (Weidezaun): Stück nach Pfostenabstand (+ Reserve%)
       const bKeys = Array.from(weideBoardsBySpacing.keys()).sort((a,b)=>a-b);
       for(const sp of bKeys){
         const qty = weideBoardsBySpacing.get(sp)||0;
-        if(qty>0) auto.push({ k:`auto_weide_bretter_${String(sp).replace(".","_")}`, label:`Weidezaun Bretter (Stk à ${fmt(sp)} m)`, qty, unit:"Stk" });
+        if(qty>0) auto.push({ k:`auto_weide_bretter_${String(sp).replace(".","_")}`, label:`Weidezaun Bretter/Riegel (Stk à ${fmt(sp)} m)`, qty, unit:"Stk" });
+      }
+
+      // Bretter/Riegel (Holzzaun): Stück nach Pfostenabstand (+ Reserve%)
+      const hbKeys = Array.from(holzBoardsBySpacing.keys()).sort((a,b)=>a-b);
+      for(const sp of hbKeys){
+        const qty = holzBoardsBySpacing.get(sp)||0;
+        if(qty>0) auto.push({ k:`auto_holz_bretter_${String(sp).replace(".","_")}`, label:`Holzzaun Bretter/Riegel (Stk à ${fmt(sp)} m)`, qty, unit:"Stk" });
       }
 
 
@@ -2915,14 +3377,33 @@ let privacyStripM_total = 0;
     });
   }
 
-  // Backup
+  // Backup (Datei) – unabhängig vom Browser-Speicher
   const btnBackup = el("btnBackup");
   if(btnBackup) btnBackup.addEventListener("click", ()=>{
-    if(!state.meta) state.meta = {};
-    state.meta.lastBackupAt = nowISO();
-    save();
-    const data={ exportedAt: nowISO(), tool:"Zaunteam Zaunplaner", version:APP_VERSION, state };
-    downloadText(JSON.stringify(data,null,2), "Zaunplaner_Backup.json", "application/json");
+    try{
+      if(!state.meta) state.meta = {};
+      state.meta.lastBackupAt = nowISO();
+      // Erst alles sauber in state schreiben
+      save();
+
+      const data = {
+        exportedAt: nowISO(),
+        tool: "Zaunteam Zaunplaner",
+        version: APP_VERSION,
+        build: APP_BUILD,
+        state
+      };
+
+      const d = new Date();
+      const pad = (n)=>String(n).padStart(2,"0");
+      const fn = "Zaunplaner_Backup_" + d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()) + "_" + pad(d.getHours()) + pad(d.getMinutes()) + ".json";
+
+      downloadText(JSON.stringify(data,null,2), fn, "application/json");
+      toast("✅ Sicherung erstellt", fn);
+    }catch(e){
+      console.error(e);
+      toast("❌ Sicherung fehlgeschlagen");
+    }
   });
 
   // JSON Import (für Handy ↔ PC Transfer)
@@ -2949,26 +3430,130 @@ let privacyStripM_total = 0;
     return out;
   }
 
-  function doImportJsonText(txt){
+  function doImportJsonText(txt, info={}){
     let parsed=null;
-    try{ parsed = JSON.parse(txt); }catch(e){ toast("❌ Import fehlgeschlagen: keine gültige JSON"); return; }
-    const next = normalizeImportedState(parsed);
-    if(!next){ toast("❌ Import fehlgeschlagen: Datenformat unbekannt"); return; }
+    try{ parsed = JSON.parse(txt); }catch(e){ toast("❌ Import fehlgeschlagen", "Keine gültige JSON"); return; }
+    const nextRaw = normalizeImportedState(parsed);
+    if(!nextRaw){ toast("❌ Import fehlgeschlagen", "Datenformat unbekannt"); return; }
 
-    // Safety: vorher Backup in lastgood schreiben
-    try{ localStorage.setItem(STORAGE_KEY+"_lastgood", JSON.stringify(state)); }catch(e){}
+    const next = {
+      version: APP_VERSION,
+      projects: Array.isArray(nextRaw.projects) ? nextRaw.projects : [],
+      selectedProjectId: nextRaw.selectedProjectId || null,
+      settings: {...DEFAULT_SETTINGS, ...(nextRaw.settings||{})},
+      meta: (nextRaw.meta && typeof nextRaw.meta==="object") ? nextRaw.meta : {}
+    };
 
-    // Übernehmen
-    state = next;
+    const curCount = Array.isArray(state.projects) ? state.projects.length : 0;
+    const incCount = Array.isArray(next.projects) ? next.projects.length : 0;
 
-    // Valid selectedProjectId
-    if(state.selectedProjectId && !state.projects.find(p=>p.id===state.selectedProjectId)){
-      state.selectedProjectId = state.projects[0]?.id || null;
-    }
+    const sizeInfo = info && info.size ? ` — ${Math.round(info.size/1024)} KB` : "";
+    const fileInfo = info && info.name ? `<div class="hint">Datei: <b>${escapeHtml(info.name)}</b>${escapeHtml(sizeInfo)}</div>` : "";
 
-    save();
-    try{ refreshAll(); }catch(e){}
-    toast("✅ Import OK – Daten übernommen");
+    const body = `
+      ${fileInfo}
+      <div style="margin-top:8px;">
+        <div><b>Aktuell:</b> ${curCount} Kunden/Projekte</div>
+        <div><b>In Datei:</b> ${incCount} Kunden/Projekte</div>
+      </div>
+      <div class="hint" style="margin-top:10px;">
+        <b>Merge</b> = Kunden hinzufügen/aktualisieren (du behältst deine bestehenden).<br>
+        <b>Replace</b> = alles durch Datei ersetzen.
+      </div>
+    `;
+
+    const backupLastGood = ()=>{
+      try{ localStorage.setItem(STORAGE_KEY+"_lastgood", JSON.stringify(state)); }catch(_){ }
+      try{ idbSet("state_lastgood", JSON.stringify(state)); }catch(_){ }
+    };
+
+    const finalize = (msgTitle, msgBody)=>{
+      try{ save(); }catch(_){ }
+      try{ refreshAll(); }catch(_){ }
+      try{ refreshSettingsUI(); }catch(_){ }
+      toast(msgTitle, msgBody||"");
+    };
+
+    const doReplace = ()=>{
+      backupLastGood();
+      const oldLogs = (state && state.meta && Array.isArray(state.meta.logs)) ? state.meta.logs.slice(-120) : [];
+      state = {
+        version: APP_VERSION,
+        selectedProjectId: next.selectedProjectId,
+        projects: next.projects,
+        settings: {...DEFAULT_SETTINGS, ...(next.settings||{})},
+        meta: {...(next.meta||{}), logs: Array.isArray((next.meta||{}).logs) ? (next.meta.logs.concat(oldLogs)).slice(-200) : oldLogs }
+      };
+      if(state.selectedProjectId && !state.projects.find(p=>p.id===state.selectedProjectId)) state.selectedProjectId = state.projects[0]?.id || null;
+      logEvent("info", "Import replace", {incCount});
+      finalize("✅ Import", "Replace übernommen");
+    };
+
+    const doMerge = ()=>{
+      backupLastGood();
+      const existing = new Map();
+      (state.projects||[]).forEach(p=>{ if(p && p.id) existing.set(p.id, p); });
+      const byKey = new Map();
+      const mkKey = (p)=>{
+        const t = String(p && p.title || "").trim().toLowerCase();
+        const d = String(p && p.plannedDate || "").trim();
+        const ph = String(p && p.phone || "").trim();
+        return `${t}__${d}__${ph}`;
+      };
+      (state.projects||[]).forEach(p=>{ try{ byKey.set(mkKey(p), p); }catch(_){ } });
+
+      let added=0, updated=0, fixedIds=0;
+      const merged = (state.projects||[]).slice();
+
+      for(const p0 of (next.projects||[])){
+        if(!p0 || typeof p0!=="object") continue;
+        const p = JSON.parse(JSON.stringify(p0));
+        if(!p.id){ p.id = uid(); fixedIds++; }
+        const hitById = existing.get(p.id);
+        if(hitById){
+          const idx = merged.findIndex(x=>x && x.id===p.id);
+          if(idx>=0) merged[idx] = p;
+          updated++;
+          continue;
+        }
+        const k = mkKey(p);
+        const hitByKey = byKey.get(k);
+        if(hitByKey && hitByKey.id){
+          const idx = merged.findIndex(x=>x && x.id===hitByKey.id);
+          if(idx>=0){
+            p.id = hitByKey.id; // keep id stable
+            merged[idx] = p;
+            updated++;
+            continue;
+          }
+        }
+        merged.push(p);
+        added++;
+      }
+
+      // Settings: lokale behalten, aber Support-Mail aus Backup übernehmen wenn leer
+      const mergedSettings = {...DEFAULT_SETTINGS, ...(state.settings||{})};
+      if(!String(mergedSettings.supportEmail||"").trim() && next.settings && next.settings.supportEmail){
+        mergedSettings.supportEmail = String(next.settings.supportEmail||"").trim();
+      }
+      state.projects = merged;
+      state.settings = mergedSettings;
+      state.version = APP_VERSION;
+      if(state.selectedProjectId && !state.projects.find(p=>p.id===state.selectedProjectId)) state.selectedProjectId = state.projects[0]?.id || null;
+      logEvent("info", "Import merge", {added, updated, fixedIds, incCount, curCount});
+      finalize("✅ Import", `Merge: +${added} neu, ${updated} aktualisiert`);
+
+      showModal("Import-Report", `
+        <div><b>Merge abgeschlossen</b></div>
+        <div style="margin-top:6px;">Neu: <b>${added}</b> — Aktualisiert: <b>${updated}</b>${fixedIds?` — IDs ergänzt: <b>${fixedIds}</b>`:""}</div>
+      `, [{label:"OK", cls:"btn green"}]);
+    };
+
+    showModal("JSON Import", body, [
+      {label:"Merge", cls:"btn green", onClick: doMerge},
+      {label:"Replace", cls:"btn bad", onClick: doReplace},
+      {label:"Abbrechen", cls:"btn", onClick: ()=>{}},
+    ]);
   }
 
   if(btnImportJson && fileImportJson){
@@ -2978,7 +3563,7 @@ let privacyStripM_total = 0;
       if(!f) return;
       try{
         const txt = await f.text();
-        doImportJsonText(txt);
+        doImportJsonText(txt, {name:f.name, size:f.size});
       }catch(e){
         toast("❌ Import fehlgeschlagen");
       } finally {
@@ -2993,6 +3578,125 @@ let privacyStripM_total = 0;
     const csv=rows.map(r=>r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(";")).join("\n");
     downloadText(csv, fileSafe(`${p.title}_Material.csv`), "text/csv");
   });
+
+  function csvLine(arr){
+    return arr.map(cell=>`"${String(cell??"").replace(/"/g,'""')}"`).join(";");
+  }
+
+  function exportProjectsCSV(){
+    const rows=[];
+    rows.push(["ID","Kunde/Projekt","Angelegt","Ausführung","Tel","E-Mail","Adresse Kunde","Adresse Objekt","Länge","System","Farbe","Status","Geplante Stunden"]);
+    for(const p of (state.projects||[])){
+      if(!p) continue;
+      const c=p.customer||{};
+      const st=(p.chef && p.chef.status) ? p.chef.status : (p.status||"");
+      const hp=(p.chef && (p.chef.hoursPlanned||"").trim()) ? (p.chef.hoursPlanned||"").trim() : ((p.plannedHours||"").trim());
+      rows.push([
+        p.id||"", p.title||"", p.createdAt||"", p.plannedDate||"",
+        p.phone||"", p.email||"", p.addr||"", p.objAddr||"",
+        c.length||"", normSystem(c.system||""), c.color||"",
+        st||"", hp||""
+      ]);
+    }
+    const csv = rows.map(csvLine).join("\n");
+    const fn = fileSafe(`Zaunplaner_Kunden_${stampForFile()}.csv`);
+    downloadText(csv, fn, "text/csv");
+  }
+
+  function exportAllMaterialsCSV(){
+    const map = new Map();
+    const bump = (name, unit, qty, projectTitle)=>{
+      const n=String(name||"").trim();
+      if(!n) return;
+      const u=String(unit||"Stk").trim()||"Stk";
+      const key = `${n}__${u}`;
+      const cur = map.get(key) || {name:n, unit:u, qty:0, projects:new Set()};
+      cur.qty += toNum(qty,0);
+      if(projectTitle) cur.projects.add(String(projectTitle));
+      map.set(key, cur);
+    };
+    for(const p of (state.projects||[])){
+      const title = p && p.title ? p.title : "";
+      const mats = (p && p.chef && Array.isArray(p.chef.materials)) ? p.chef.materials : [];
+      for(const it of mats){ bump(it && it.name, it && it.unit, it && it.qty, title); }
+    }
+    const rows=[];
+    rows.push(["Material","Menge gesamt","Einheit","In Projekten (Anzahl)"]);
+    [...map.values()].sort((a,b)=>a.name.localeCompare(b.name,'de')).forEach(it=>{
+      rows.push([it.name, fmt(it.qty), it.unit, it.projects.size]);
+    });
+    const csv = rows.map(csvLine).join("\n");
+    const fn = fileSafe(`Zaunplaner_Gesamtmaterial_${stampForFile()}.csv`);
+    downloadText(csv, fn, "text/csv");
+  }
+
+  function stampForFile(){
+    const d=new Date();
+    const pad=(n)=>String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+  }
+
+  function printPdfReport(){
+    const p=currentProject();
+    if(!p) return toast("Kein Kunde");
+    const c=p.customer||{};
+    const mats=sortMaterials((p.chef && p.chef.materials)||[]);
+    const html = `
+      <html><head><meta charset="utf-8" />
+      <title>${escapeHtml(p.title||"Report")}</title>
+      <style>
+        body{font-family:Arial, sans-serif; padding:18px; color:#111;}
+        h1{font-size:20px; margin:0 0 8px;}
+        .muted{color:#444; font-size:12px;}
+        table{width:100%; border-collapse:collapse; margin-top:12px;}
+        th,td{border:1px solid #bbb; padding:6px 8px; font-size:12px; text-align:left;}
+        th{background:#eee;}
+        .grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;}
+        .box{border:1px solid #bbb; padding:10px; border-radius:8px;}
+      </style>
+      </head><body>
+        <h1>Zaunplaner – Report</h1>
+        <div class="muted">Kunde/Projekt: <b>${escapeHtml(p.title||"")}</b> — Export: ${escapeHtml(new Date().toLocaleString())}</div>
+        <div class="grid">
+          <div class="box">
+            <div><b>Kontaktdaten</b></div>
+            <div>Tel: ${escapeHtml(p.phone||"-")}</div>
+            <div>E-Mail: ${escapeHtml(p.email||"-")}</div>
+            <div>Kunde: ${escapeHtml(p.addr||"-")}</div>
+            <div>Objekt: ${escapeHtml(p.objAddr||"-")}</div>
+            <div>Ausführung: ${escapeHtml(p.plannedDate||"-")}</div>
+          </div>
+          <div class="box">
+            <div><b>Zaun</b></div>
+            <div>Länge: ${escapeHtml(c.length||"-")}</div>
+            <div>System: ${escapeHtml(normSystem(c.system||""))}</div>
+            <div>Farbe: ${escapeHtml(c.color||"-")}</div>
+            <div>Höhe: ${escapeHtml(c.height||"-")} cm</div>
+          </div>
+        </div>
+
+        <h2 style="font-size:16px; margin:16px 0 6px;">Material</h2>
+        <table>
+          <thead><tr><th>Material</th><th>Menge</th><th>Einheit</th><th>Notiz</th></tr></thead>
+          <tbody>
+            ${mats.length ? mats.map(it=>`<tr><td>${escapeHtml(it.name||"")}</td><td>${escapeHtml(fmt(toNum(it.qty,0)))}</td><td>${escapeHtml(it.unit||"Stk")}</td><td>${escapeHtml((it.note||"").trim())}</td></tr>`).join("") : `<tr><td colspan="4">(keine Einträge)</td></tr>`}
+          </tbody>
+        </table>
+
+        ${(p.customer && (p.customer.note||"").trim()) ? `<h2 style="font-size:16px; margin:16px 0 6px;">Notiz</h2><div>${escapeHtml(p.customer.note||"")}</div>` : ""}
+      </body></html>
+    `;
+    try{
+      const w = window.open("", "_blank");
+      if(!w){ toast("Popup blockiert", "Bitte Popups erlauben"); return; }
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      setTimeout(()=>{ try{ w.focus(); w.print(); }catch(_){ } }, 250);
+    }catch(e){
+      toast("PDF/Print fehlgeschlagen", String(e && e.message || e));
+    }
+  }
   el("btnReset").addEventListener("click", ()=>{
     if(!confirm("Wirklich ALLE lokalen Daten löschen?")) return;
     localStorage.removeItem(STORAGE_KEY);
@@ -3221,11 +3925,22 @@ function refreshCustomerUI(){
                 </div>
                 <div class="grid3" style="margin-top:8px;">
 
-                  <div>
+
+                  <div style="grid-column: span 3;">
+                    <label>Gewählte Option</label>
+                    <select data-k="electroType">
+                      <option value="litze">Litze</option>
+                      <option value="draht">Draht</option>
+                      <option value="band">Band</option>
+                    </select>
+                    <div class="hint">Es wird nur die gewählte Option berechnet/angezeigt.</div>
+                  </div>
+
+                  <div class="jsEType jsEType_litze">
                     <label>Litze: Anzahl Stränge</label>
                     <input data-k="electroLitze" inputmode="numeric" value="${s.electroLitze||""}" placeholder="z.B. 3" />
                   </div>
-                  <div>
+                  <div class="jsEType jsEType_litze">
                     <label>Litze: Rollenlänge</label>
                     <select data-k="electroLitzeRoll">
                       <option value="200">200 m</option>
@@ -3233,16 +3948,16 @@ function refreshCustomerUI(){
                       <option value="1000">1000 m</option>
                     </select>
                   </div>
-                  <div>
+                  <div class="jsEType jsEType_litze">
                     <label>&nbsp;</label>
                     <div class="hint">z.B. 200/400/1000 m Rollen sind üblich</div>
                   </div>
 
-                  <div>
+                  <div class="jsEType jsEType_draht">
                     <label>Draht: Anzahl Drähte</label>
                     <input data-k="electroDraht" inputmode="numeric" value="${s.electroDraht||""}" placeholder="z.B. 2" />
                   </div>
-                  <div>
+                  <div class="jsEType jsEType_draht">
                     <label>Draht: Rollenlänge</label>
                     <select data-k="electroDrahtRoll">
                       <option value="250">250 m</option>
@@ -3260,13 +3975,13 @@ function refreshCustomerUI(){
                     <label>Band: Anzahl Bänder</label>
                     <input data-k="electroBand" inputmode="numeric" value="${s.electroBand||""}" placeholder="z.B. 1" />
                   </div>
-                  <div>
+                  <div class="jsEType jsEType_band">
                     <label>Band: Rollenlänge</label>
                     <select data-k="electroBandRoll">
                       <option value="200">200 m</option>
                     </select>
                   </div>
-                  <div>
+                  <div class="jsEType jsEType_band">
                     <label>&nbsp;</label>
                     <div class="hint">Breitband ist oft 200 m</div>
                   </div>
@@ -3283,103 +3998,78 @@ function refreshCustomerUI(){
               </select>
             </div>
 
-            <div class="jsWoodOnly">
-              <label style="display:flex; align-items:center; gap:8px; font-weight:800;">
-                <input data-k="woodIsWeide" type="checkbox" ${s.woodIsWeide ? "checked" : ""} />
-                <span>Weidezaun (Holzpfosten + Leiter/Bretter)</span>
-              </label>
-              <div class="hint" style="margin-top:4px;">Für Weidezaun werden keine Matten berechnet – stattdessen Pfosten + Leiter (Litze/Draht/Band) + optional Bretter.</div>
-            </div>
-
-            <div class="jsWeideOnly" style="grid-column: span 2; display:none;">
-              <label>Holzart (Pfosten)</label>
-              <input data-k="weideWood" list="jsWoodSpeciesDL" value="${escapeHtml(s.weideWood||"")}" placeholder="z.B. Robinie, Kastanie, Douglasie" />
-            </div>
-            <div class="jsWeideOnly" style="display:none;">
-              <label>Pfostenlänge (cm)</label>
-              <input data-k="weidePostLen" inputmode="numeric" value="${s.weidePostLen||""}" placeholder="z.B. 220" />
-            </div>
-
-            <div class="jsWeideOnly" style="display:none;">
-              <label>Pfostenabstand (m)</label>
-              <input data-k="weideSpacing" inputmode="decimal" value="${s.weideSpacing||""}" placeholder="z.B. 3,0" />
-            </div>
-            <div class="jsWeideOnly" style="display:none;">
-              <label>Reserve % (Zugabe)</label>
-              <input data-k="weideExtraPct" inputmode="decimal" value="${s.weideExtraPct||""}" placeholder="z.B. 10" />
-            </div>
-            <div class="jsWeideOnly" style="display:none;">
-              <label>Preset (Tierart)</label>
-              <select data-k="weidePreset">
-                <option value="">—</option>
-                <option value="pferd">Pferd</option>
-                <option value="rind">Rind</option>
-                <option value="schaf">Schaf</option>
-                <option value="ziege">Ziege</option>
-                <option value="wolf">Wolf/Wild</option>
-                <option value="gefluegel">Geflügel</option>
-              </select>
-            </div>
-
-            <div class="jsWeideOnly" style="grid-column: span 3; display:none;">
-              <div class="card" style="padding:10px;">
-                <b>Leiter & Bretter</b>
+            <div class="jsWoodOnly" style="grid-column: span 3;">
+              <div class="card" style="padding:10px; background:rgba(255,255,255,0.04);">
+                <b>Holzzaun / Weidezaun</b>
                 <div class="grid3" style="margin-top:8px;">
                   <div>
-                    <label>Litze: Stränge</label>
-                    <input data-k="weideLitze" inputmode="numeric" value="${s.weideLitze||""}" placeholder="0" />
-                  </div>
-                  <div>
-                    <label>Litze: Rollenlänge</label>
-                    <select data-k="weideLitzeRoll">
-                      <option value="200">200 m</option>
-                      <option value="400">400 m</option>
-                      <option value="1000">1000 m</option>
+                    <label>Variante</label>
+                    <select data-k="woodClass">
+                      <option value="holz">Holzzaun</option>
+                      <option value="weide">Weidezaun</option>
                     </select>
                   </div>
-                  <div></div>
-
                   <div>
-                    <label>Draht: Drähte</label>
-                    <input data-k="weideDraht" inputmode="numeric" value="${s.weideDraht||""}" placeholder="0" />
-                  </div>
-                  <div>
-                    <label>Draht: Rollenlänge</label>
-                    <select data-k="weideDrahtRoll">
-                      <option value="625">625 m</option>
-                      <option value="250">250 m</option>
-                      <option value="500">500 m</option>
+                    <label>Bauart</label>
+                    <select data-k="woodBuild">
+                      <option value="fields">Holzfelder / Elemente</option>
+                      <option value="boards">Bretter / Riegel</option>
                     </select>
                   </div>
-                  <div></div>
-
                   <div>
-                    <label>Band: Bänder</label>
-                    <input data-k="weideBand" inputmode="numeric" value="${s.weideBand||""}" placeholder="0" />
-                  </div>
-                  <div>
-                    <label>Band: Rollenlänge</label>
-                    <select data-k="weideBandRoll">
-                      <option value="200">200 m</option>
-                      <option value="100">100 m</option>
-                      <option value="300">300 m</option>
+                    <label>Stil</label>
+                    <select data-k="woodStyle">
+                      <option value="">—</option>
+                      <option value="Lattenzaun">Lattenzaun (Deko + günstig)</option>
+                      <option value="Jägerzaun">Jägerzaun (Deko + günstig)</option>
+                      <option value="Staketenzaun">Staketenzaun (Naturnah)</option>
+                      <option value="Flechtzaun">Flechtzaun (Naturnah)</option>
+                      <option value="Lamellen/Elemente">Lamellen/Elemente (Sichtschutz)</option>
+                      <option value="Nut-und-Feder">Nut-und-Feder (Sichtschutz)</option>
+                      <option value="Bohlenzaun">Bohlenzaun (Sichtschutz)</option>
+                      <option value="Koppel-/Ranchzaun">Koppel-/Ranchzaun (Weide / Tierbereich)</option>
+                      <option value="Riegelzaun">Riegelzaun (Weide / Tierbereich)</option>
+                      <option value="Palisaden/Robinienpfosten">Palisaden/Robinienpfosten (Weide / Tierbereich)</option>
                     </select>
-                  </div>
-                  <div></div>
-
-                  <div>
-                    <label>Bretter: Reihen</label>
-                    <input data-k="weideBoards" inputmode="numeric" value="${s.weideBoards||""}" placeholder="0" />
-                  </div>
-                  <div class="hint" style="grid-column: span 2; display:flex; align-items:flex-end;">
-                    Bretter werden aus Pfostenabstand berechnet: Stück = Intervalle × Reihen (+ Reserve%). Keine Isolatoren.
                   </div>
                 </div>
-                <div class="jsWeideCalc hint" style="margin-top:8px;"></div>
+
+                <div class="jsWoodBoardsOnly" style="margin-top:8px; display:none;">
+                  <div class="grid3">
+                    <div style="grid-column: span 2;">
+                      <label>Holzart (Pfosten)</label>
+                      <input data-k="weideWood" list="jsWoodSpeciesDL" value="${escapeHtml(s.weideWood||"")}" placeholder="z.B. Robinie, Kastanie, Douglasie" />
+                    </div>
+                    <div>
+                      <label>Pfostenlänge (cm)</label>
+                      <input data-k="weidePostLen" inputmode="numeric" value="${s.weidePostLen||""}" placeholder="z.B. 220" />
+                    </div>
+
+                    <div>
+                      <label>Pfostenabstand (m)</label>
+                      <input data-k="weideSpacing" inputmode="decimal" value="${s.weideSpacing||""}" placeholder="z.B. 3,0" />
+                    </div>
+                    <div>
+                      <label>Reserve % (Zugabe)</label>
+                      <input data-k="weideExtraPct" inputmode="decimal" value="${s.weideExtraPct||""}" placeholder="z.B. 10" />
+                    </div>
+                    <div>
+                      <label>Bretter/Riegel: Reihen</label>
+                      <input data-k="weideBoards" inputmode="numeric" value="${s.weideBoards||""}" placeholder="z.B. 3" />
+                    </div>
+
+                    <div class="hint" style="grid-column: span 3;">
+                      Berechnung: Pfosten = Intervalle + 1 • Bretter = Intervalle × Reihen (+ Reserve%).
+                    </div>
+                  </div>
+                  <div class="jsWeideCalc hint" style="margin-top:8px;"></div>
+                </div>
+
+                <div class="hint jsWoodFieldsHint" style="margin-top:8px;">
+                  Holzfelder/Elemente: Berechnung wie 2,50m‑Elemente (wie Alu/WPC). Bei Brettern/Riegeln werden nur Bretter & Holzpfosten berechnet.
+                </div>
               </div>
             </div>
-
-          </div>
 
           <div class="row" style="margin-top:10px; gap:8px;">
             <button data-act="del" class="btn red" type="button">Löschen</button>
@@ -3445,12 +4135,31 @@ function refreshCustomerUI(){
         if(elBR) elBR.value = String(s.electroBandRoll || "200");
         const elPreset = det.querySelector('select[data-k="electroPreset"]');
         if(elPreset) elPreset.value = String(s.electroPreset||"");
+        const elType = det.querySelector('select[data-k="electroType"]');
+        if(elType) elType.value = String(s.electroType||"");
+        try{ setElectroExtrasVisible(det, normSystem(det.querySelector('select[data-k="system"]')?.value || s.system || ""), s.height||160); }catch(_){ }
         try{ updateElectroCalc(det); }catch(_){ }
 
 
         // Weidezaun (Holz) Selects initial setzen
         const wCB = det.querySelector('input[data-k="woodIsWeide"]');
         if(wCB) wCB.checked = !!s.woodIsWeide;
+
+        // Neu: Holz/Weide/Bauart/Stil
+        const wcEl = det.querySelector('select[data-k="woodClass"]');
+        if(wcEl){
+          const legacyWeide = !!s.woodIsWeide;
+          wcEl.value = String(s.woodClass || (legacyWeide ? "weide" : "holz") || "holz");
+        }
+        const wbEl = det.querySelector('select[data-k="woodBuild"]');
+        if(wbEl){
+          const wcNow = wcEl ? String(wcEl.value||"holz") : "holz";
+          const def = (wcNow==="weide") ? "boards" : "fields";
+          wbEl.value = String(s.woodBuild || def);
+        }
+        const wsEl = det.querySelector('select[data-k="woodStyle"]');
+        if(wsEl) wsEl.value = String(s.woodStyle||"");
+        try{ setWeideExtrasVisible(det, normSystem(det.querySelector('select[data-k="system"]')?.value || s.system || "Holz")); }catch(_){ }
 
         const wLR = det.querySelector('select[data-k="weideLitzeRoll"]');
         if(wLR) wLR.value = String(s.weideLitzeRoll || "400");
@@ -3469,7 +4178,28 @@ function refreshCustomerUI(){
           s.color = String(det.querySelector('select[data-k="color"]').value||"").trim() || "Anthrazit (RAL 7016)";
           s.privacy = String(det.querySelector('select[data-k="privacy"]').value||"no");
 
-          
+
+          // Holz/Weide Auswahl (nur wenn System=Holz)
+          const sysN = normSystem(s.system);
+          if(sysN==="Holz"){
+            const wcEl = det.querySelector('select[data-k="woodClass"]');
+            const wbEl = det.querySelector('select[data-k="woodBuild"]');
+            const wsEl = det.querySelector('select[data-k="woodStyle"]');
+            const legacyWeide = !!s.woodIsWeide;
+            s.woodClass = wcEl ? String(wcEl.value||"holz") : (String(s.woodClass||"") || (legacyWeide ? "weide" : "holz"));
+            s.woodBuild = wbEl ? String(wbEl.value||"fields") : (String(s.woodBuild||"") || (s.woodClass==="weide" ? "boards" : "fields"));
+            s.woodStyle = wsEl ? String(wsEl.value||"") : (s.woodStyle||"");
+            // Legacy-Feld weiterpflegen
+            s.woodIsWeide = (s.woodClass==="weide");
+
+            // Weide/Bretter-Modus: Leiter/Litze/Draht/Band niemals verwenden
+            if(s.woodClass==="weide" || s.woodBuild==="boards"){
+              s.weideLitze = "0";
+              s.weideDraht = "0";
+              s.weideBand  = "0";
+              s.weidePreset = "";
+            }
+          }
           s.corners = clampInt(det.querySelector('input[data-k="corners"]').value||0,0,999);
           // Elektrozaun Extras (optional)
           s.electroSpacing = (det.querySelector('input[data-k="electroSpacing"]') ? String(det.querySelector('input[data-k="electroSpacing"]').value||"").trim() : (s.electroSpacing||""));
@@ -3478,9 +4208,18 @@ function refreshCustomerUI(){
           s.electroDraht = (det.querySelector('input[data-k="electroDraht"]') ? String(det.querySelector('input[data-k="electroDraht"]').value||"").trim() : (s.electroDraht||""));
           s.electroBand = (det.querySelector('input[data-k="electroBand"]') ? String(det.querySelector('input[data-k="electroBand"]').value||"").trim() : (s.electroBand||""));
           s.electroPreset = (det.querySelector('select[data-k="electroPreset"]') ? String(det.querySelector('select[data-k="electroPreset"]').value||"").trim() : (s.electroPreset||""));
+          s.electroType = (det.querySelector('select[data-k="electroType"]') ? String(det.querySelector('select[data-k="electroType"]').value||"") : (s.electroType||""));
           s.electroLitzeRoll = (det.querySelector('select[data-k="electroLitzeRoll"]') ? String(det.querySelector('select[data-k="electroLitzeRoll"]').value||"").trim() : (s.electroLitzeRoll||""));
           s.electroDrahtRoll = (det.querySelector('select[data-k="electroDrahtRoll"]') ? String(det.querySelector('select[data-k="electroDrahtRoll"]').value||"").trim() : (s.electroDrahtRoll||""));
           s.electroBandRoll = (det.querySelector('select[data-k="electroBandRoll"]') ? String(det.querySelector('select[data-k="electroBandRoll"]').value||"").trim() : (s.electroBandRoll||""));
+
+          // Elektro: nur 1 Leiter-Art behalten
+          (function(){
+            const t = String(s.electroType||"");
+            if(t==="litze"){ s.electroDraht="0"; s.electroBand="0"; }
+            else if(t==="draht"){ s.electroLitze="0"; s.electroBand="0"; }
+            else if(t==="band"){ s.electroLitze="0"; s.electroDraht="0"; }
+          })();
           try{ updateElectroCalc(det); }catch(_){ }
 
           // Weidezaun (Holz) Extras
@@ -3529,6 +4268,28 @@ function refreshCustomerUI(){
             commit();
           });
         }
+        const electroTypeSel = det.querySelector('select[data-k="electroType"]');
+        if(electroTypeSel){
+          electroTypeSel.addEventListener("change", (ev)=>{
+            try{ ev.stopImmediatePropagation(); }catch(_){}
+            setElectroExtrasVisible(det, normSystem(det.querySelector('select[data-k="system"]')?.value || ""), s.height||160);
+            try{ updateElectroCalc(det); }catch(_){}
+            commit();
+          });
+        }
+
+        const woodClassSel = det.querySelector('select[data-k="woodClass"]');
+        const woodBuildSel = det.querySelector('select[data-k="woodBuild"]');
+        const woodStyleSel = det.querySelector('select[data-k="woodStyle"]');
+        const woodRefresh = ()=>{
+          setWeideExtrasVisible(det, normSystem(det.querySelector('select[data-k="system"]')?.value || ""));
+          try{ updateWeideCalc(det); }catch(_){}
+          commit();
+        };
+        if(woodClassSel) woodClassSel.addEventListener("change", woodRefresh);
+        if(woodBuildSel) woodBuildSel.addEventListener("change", woodRefresh);
+        if(woodStyleSel) woodStyleSel.addEventListener("change", woodRefresh);
+
         const weideCb = det.querySelector('input[data-k="woodIsWeide"]');
         if(weideCb){
           weideCb.addEventListener("change", ()=>{
@@ -3645,8 +4406,35 @@ det.querySelectorAll("input,select").forEach(elm=>{
     refreshCustomerUI();
     refreshChefUI();
     updateStatusPill();
+    try{ refreshSettingsUI(); }catch(_){ }
     // View mode
     if(state.selectedProjectId) showCustomerEdit(); else showCustomerList();
+  }
+
+  async function restoreFromIndexedDBIfNeeded(){
+    try{
+      const txt = await idbGet("state");
+      if(!txt) return;
+      let s=null;
+      try{ s = JSON.parse(txt); }catch(e){ s=null; }
+      if(!s || !Array.isArray(s.projects) || !s.projects.length) return;
+
+      const hasLocal = (()=>{ try{ return !!localStorage.getItem(STORAGE_KEY); }catch(e){ return false; }})();
+      const isDemoOnly = (state.projects && state.projects.length===1 && /demo/i.test(String(state.projects[0].title||"")));
+
+      // Nur übernehmen, wenn localStorage leer/blockiert ist oder nur Demo aktiv ist
+      if(!hasLocal || isDemoOnly){
+        state = {...state, ...s, version: APP_VERSION};
+        state.settings = {...DEFAULT_SETTINGS, ...(s.settings||state.settings||{})};
+        if(!state.meta) state.meta={ lastSavedAt:"", lastBackupAt:"", logs:[] };
+        if(!Array.isArray(state.meta.logs)) state.meta.logs=[];
+        if(state.selectedProjectId && !state.projects.find(p=>p.id===state.selectedProjectId)){
+          state.selectedProjectId = state.projects[0]?.id || null;
+        }
+        try{ refreshAll(); }catch(e){}
+        try{ toast("✅ Kunden geladen", "Fallback (IndexedDB)"); }catch(e){}
+      }
+    }catch(e){}
   }
 
   // init
@@ -3660,6 +4448,59 @@ det.querySelectorAll("input,select").forEach(elm=>{
   // Always keep version current
   state.version = APP_VERSION;
   refreshAll();
+
+  /******************************************************************
+   * Settings Tab – Buttons / Toggles
+   ******************************************************************/
+  const btnExportJSON = el("btnExportJSON");
+  if(btnExportJSON) btnExportJSON.addEventListener("click", ()=>{ try{ el("btnBackup").click(); }catch(_){ } });
+  const btnImportJSON2 = el("btnImportJSON2");
+  if(btnImportJSON2) btnImportJSON2.addEventListener("click", ()=>{ try{ el("fileImportJson").click(); }catch(_){ } });
+  const btnExportCSVProjects = el("btnExportCSVProjects");
+  if(btnExportCSVProjects) btnExportCSVProjects.addEventListener("click", exportProjectsCSV);
+  const btnExportCSVAllMaterials = el("btnExportCSVAllMaterials");
+  if(btnExportCSVAllMaterials) btnExportCSVAllMaterials.addEventListener("click", exportAllMaterialsCSV);
+  const btnExportPDF = el("btnExportPDF");
+  if(btnExportPDF) btnExportPDF.addEventListener("click", printPdfReport);
+
+  const btnStorageSelfTest = el("btnStorageSelfTest");
+  if(btnStorageSelfTest) btnStorageSelfTest.addEventListener("click", ()=>{ runStorageSelfTest(); });
+
+  const btnExportLog = el("btnExportLog");
+  if(btnExportLog) btnExportLog.addEventListener("click", ()=>{
+    const logs = (state.meta && Array.isArray(state.meta.logs)) ? state.meta.logs : [];
+    const txt = JSON.stringify({app:APP_NAME, version:APP_VERSION, build:APP_BUILD, exportedAt:nowISO(), logs}, null, 2);
+    downloadText(txt, fileSafe(`Zaunplaner_Log_${stampForFile()}.json`), "application/json");
+  });
+
+  const setShareOnExport = el("setShareOnExport");
+  if(setShareOnExport) setShareOnExport.addEventListener("change", ()=>{
+    state.settings = {...DEFAULT_SETTINGS, ...(state.settings||{})};
+    state.settings.shareOnExport = !!setShareOnExport.checked;
+    save();
+    refreshSettingsUI();
+  });
+
+  const setSupportEmail = el("setSupportEmail");
+  let supportEmailTimer=null;
+  if(setSupportEmail) setSupportEmail.addEventListener("input", ()=>{
+    if(supportEmailTimer) clearTimeout(supportEmailTimer);
+    supportEmailTimer = setTimeout(()=>{
+      state.settings = {...DEFAULT_SETTINGS, ...(state.settings||{})};
+      state.settings.supportEmail = String(setSupportEmail.value||"").trim();
+      save();
+      refreshSettingsUI();
+    }, 250);
+  });
+  const btnSupportMail = el("btnSupportMail");
+  if(btnSupportMail) btnSupportMail.addEventListener("click", ()=>{
+    const m = String(state.settings && state.settings.supportEmail || "").trim();
+    if(!m) return;
+    try{ window.location.href = `mailto:${encodeURIComponent(m)}?subject=${encodeURIComponent(APP_NAME+" Support")}&body=${encodeURIComponent("Version: "+APP_VERSION+" ("+APP_BUILD+")\n\n")}`; }catch(_){ }
+  });
+
+  // Fallback-Restore (async)
+  setTimeout(()=>{ try{ restoreFromIndexedDBIfNeeded(); }catch(e){} }, 80);
 
   // Demo-Modus (für Chef-Showcase – lädt Beispielkunde ohne echte Daten)
   const btnDemo = el("btnDemo");
@@ -3716,5 +4557,3 @@ det.querySelectorAll("input,select").forEach(elm=>{
     }
   });
 })();
-
-if(typeof btnUpdate!=="undefined" && btnUpdate){ btnUpdate.addEventListener("click", checkForUpdates); }

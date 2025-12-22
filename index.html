@@ -309,6 +309,31 @@
     }
 
   .isDisabled{ opacity:0.65; filter:saturate(0.85); }
+
+  /* Modal (Import-Report / Fehlermeldungen) */
+  .modalHost{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.55);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:14px;
+    z-index:9999;
+  }
+  .modalCard{
+    max-width:820px;
+    width:100%;
+    background:linear-gradient(180deg, rgba(31,42,61,.98), rgba(34,49,74,.96));
+    border:1px solid var(--line);
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    padding:14px;
+  }
+  .modalTitle{ font-weight:950; font-size:16px; margin-bottom:8px; }
+  .modalBody{ font-size:13px; color:rgba(226,232,240,.92); }
+  .modalBody code{ background:rgba(255,255,255,.08); padding:1px 6px; border-radius:8px; }
+  .modalBtns{ display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; margin-top:12px; }
 </style>
 </head>
 
@@ -324,9 +349,9 @@
           <span class="pill" id="projCountPill">0</span>
         </div>
         <div class="row">
-          <button class="btn small" id="btnBackup" type="button">Backup.json</button>
+          <button class="btn" id="btnBackup" type="button" title="Erzeugt eine Sicherungsdatei mit allen Kunden & Daten">💾 Speichern (Datei)</button>
           <button class="btn small" id="btnDemo" type="button">Demo</button>
-      <button id="btnImportJson" class="btn" type="button">Import.json</button>
+      <button id="btnImportJson" class="btn" type="button" title="Lädt eine Sicherungsdatei (JSON) wieder ein">📂 Laden (Datei)</button>
       <input id="fileImportJson" type="file" accept="application/json,.json" style="display:none" />
           <button class="btn small" id="btnCSV" type="button">Material CSV</button>
           <button id="btnUpdate" class="btn" type="button">Update prüfen</button>
@@ -337,6 +362,7 @@
       <div class="tabs">
         <button class="tabBtn active" data-tab="kunde" type="button">👤 Kunde / Projekt</button>
         <button class="tabBtn" data-tab="chef" type="button">🛠️ Chef/Team</button>
+        <button class="tabBtn" data-tab="settings" type="button">⚙️ Einstellungen</button>
       </div>
     </div>
 
@@ -805,7 +831,91 @@
       </div>
     </section>
 
+    <!-- SETTINGS -->
+    <section class="panel tab" data-tab="settings" style="display:none;">
+      <h2>⚙️ Einstellungen & Backup</h2>
+
+      <div class="card">
+        <div class="cardTitle">
+          <b>Speicher‑Status</b>
+          <span class="pill" id="storagePill">—</span>
+        </div>
+        <div id="storageStatusBox" class="hint" style="margin-top:10px;"></div>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn small" id="btnStorageSelfTest" type="button">🔧 Speicher testen</button>
+          <button class="btn small" id="btnExportLog" type="button">🧾 Log exportieren</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardTitle"><b>Backup & Restore</b></div>
+        <div class="hint" style="margin-top:6px;">
+          Vollständig offline. Export passiert nur manuell. Import bietet <b>Merge</b> oder <b>Replace</b> + Report.
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn green" id="btnExportJSON" type="button">💾 JSON Backup</button>
+          <button class="btn" id="btnImportJSON2" type="button">📂 JSON importieren</button>
+          <button class="btn blue" id="btnExportCSVProjects" type="button">📄 CSV Kunden</button>
+          <button class="btn blue" id="btnExportCSVAllMaterials" type="button">📄 CSV Gesamt‑Material</button>
+          <button class="btn purple" id="btnExportPDF" type="button">🖨️ PDF Report (Druck)</button>
+        </div>
+        <div class="hint" style="margin-top:8px;">
+          Mobile: Wenn möglich öffnet sich direkt das Teilen‑Menü. Dateiname enthält Datum/Uhrzeit.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardTitle"><b>Export‑Optionen</b></div>
+        <div class="grid2" style="margin-top:10px;">
+          <div>
+            <label><input id="setShareOnExport" type="checkbox" style="width:auto; margin-right:8px;" />Beim Export Teilen‑Menü nutzen (wenn verfügbar)</label>
+            <div class="hint">Empfohlen für iPhone/Android. Fallback ist normaler Download.</div>
+          </div>
+          <div>
+            <label><input id="setAutoBackupHint" type="checkbox" style="width:auto; margin-right:8px;" disabled />Erinnerung „Backup machen“ (später)</label>
+            <div class="hint">Vorbereitet – ohne Zwang & ohne Benachrichtigungen (noch deaktiviert).</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardTitle"><b>Datenschutz</b></div>
+        <div class="hint" style="margin-top:6px;">
+          <b>Keine Accounts, kein Tracking, keine Werbung.</b><br>
+          Alle Daten bleiben lokal auf deinem Gerät (Browser‑Speicher).<br>
+          Export/Teilen passiert nur, wenn du aktiv auf „Export“ klickst.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardTitle"><b>Support</b></div>
+        <div class="grid2" style="margin-top:10px;">
+          <div>
+            <label>Kontakt‑Mail</label>
+            <input id="setSupportEmail" placeholder="z.B. info@deinbetrieb.de" />
+          </div>
+          <div>
+            <label>App‑Info</label>
+            <div id="supportInfo" class="hint" style="margin-top:6px;"></div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn small" id="btnSupportMail" type="button">✉️ Support‑Mail öffnen</button>
+        </div>
+      </div>
+    </section>
+
   </div>
+
+  <div id="updateBar" style="display:none; margin-top:10px;" class="card">
+    <div class="row" style="align-items:center; justify-content:space-between;">
+      <div style="font-weight:900;">🔄 Update verfügbar – jetzt neu laden?</div>
+      <button id="btnUpdateNow" class="btn green" type="button">Jetzt aktualisieren</button>
+    </div>
+    <div class="hint" style="margin-top:8px;">Hinweis: Deine Kunden bleiben erhalten.</div>
+  </div>
+
+  <div id="modalHost" class="modalHost"><div class="modalCard" id="modalCard"></div></div>
 
   <div id="toast"></div>
 
@@ -817,105 +927,53 @@
     <option value="200"></option>
   </datalist>
 
-  <script src="./app.js?v=1.4.41c" defer></script>
-<!-- PWA Service Worker (Auto-Update) -->
+  <script src="./app.js?v=1.4.42" defer></script>
+  <!-- PWA Service Worker (Auto-Update, offline-ready) -->
   <script>
-    if ("serviceWorker" in navigator) {
-    window.addEventListener("load", async () => {
-      const updateBar = document.getElementById("updateBar");
-      const btnUpdateNow = document.getElementById("btnUpdateNow");
-      let reg = null;
-
-      const showUpdate = () => {
-        if(updateBar) updateBar.style.display="block";
-      };
-
-      try {
-        // iOS/PWA: SW URL mit Version -> garantiertes Update
-        // Auto-Cleanup: alte ServiceWorker-Versionen entfernen (damit Updates nicht "festhängen")
-        try {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          for (const r of regs) {
-            const u = (r && r.active && r.active.scriptURL) ? r.active.scriptURL : "";
-            if (u.includes("sw.js?v=") && !u.includes("sw.js?v=1.4.41c")) {
-              await r.unregister();
+    (function(){
+      const VER = "1.4.42";
+      if (!('serviceWorker' in navigator)) return;
+      window.addEventListener('load', async () => {
+        const updateBar = document.getElementById('updateBar');
+        const btnUpdateNow = document.getElementById('btnUpdateNow');
+        const showUpdate = () => { if(updateBar) updateBar.style.display = 'block'; };
+        try{
+          // Cleanup: alte Versionen raus
+          try{
+            const regs = await navigator.serviceWorker.getRegistrations();
+            for(const r of regs){
+              const u = (r && r.active && r.active.scriptURL) ? r.active.scriptURL : '';
+              if(u.includes('sw.js?v=') && !u.includes('sw.js?v='+VER)) await r.unregister();
             }
-          }
-        } catch(_) {}
-        reg = await navigator.serviceWorker.register("./sw.js?v=1.4.41c", { updateViaCache: "none" });
+          }catch(_){ }
 
-        // Immer nach Updates suchen
-        const doUpdate = () => reg && reg.update().catch(()=>{});
-        doUpdate();
-        setInterval(doUpdate, 10 * 60 * 1000);
-
-        // Wenn schon was wartet: anzeigen
-        if (reg.waiting) showUpdate();
-
-        reg.addEventListener("updatefound", () => {
-          const sw = reg.installing;
-          if (!sw) return;
-          sw.addEventListener("statechange", () => {
-            if (sw.state === "installed" && navigator.serviceWorker.controller) {
-              showUpdate();
-            }
-          });
-        });
-
-        // Klick: sofort aktivieren
-        if(btnUpdateNow){
-          btnUpdateNow.addEventListener("click", () => {
-            try {
-              if(reg && reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
-              else location.reload();
-            } catch(e) {
-              location.reload();
-            }
-          });
-        }
-
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          // neue Version aktiv -> reload
-          location.reload();
-        });
-      } catch (e) {
-        console.warn("SW register failed", e);
-      }
-    });
-  });
-
-          const doUpdate = () => reg.update().catch(()=>{});
+          const reg = await navigator.serviceWorker.register('./sw.js?v='+VER, { updateViaCache: 'none' });
+          const doUpdate = () => reg && reg.update().catch(()=>{});
           doUpdate();
-          setInterval(doUpdate, 15*60*1000);
+          setInterval(doUpdate, 10*60*1000);
 
-          if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
-
-          reg.addEventListener("updatefound", () => {
+          if(reg.waiting) showUpdate();
+          reg.addEventListener('updatefound', () => {
             const sw = reg.installing;
-            if (!sw) return;
-            sw.addEventListener("statechange", () => {
-              if (sw.state === "installed" && navigator.serviceWorker.controller) {
-                if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
-              }
+            if(!sw) return;
+            sw.addEventListener('statechange', () => {
+              if(sw.state==='installed' && navigator.serviceWorker.controller) showUpdate();
             });
           });
 
-          navigator.serviceWorker.addEventListener("controllerchange", () => {
-            location.reload();
-          });
-        } catch (e) {
-          console.warn("SW register failed", e);
+          if(btnUpdateNow){
+            btnUpdateNow.addEventListener('click', () => {
+              try{ if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'}); }catch(_){ }
+              setTimeout(()=>location.reload(), 200);
+            });
+          }
+
+          navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+        }catch(e){
+          console.warn('SW register failed', e);
         }
       });
-    }
+    })();
   </script>
 </body>
 </html>
-    <div id="updateBar" style="display:none; margin-top:10px;" class="card">
-      <div class="row" style="align-items:center; justify-content:space-between;">
-        <div style="font-weight:900;">🔄 Update verfügbar – jetzt neu laden?</div>
-        <button id="btnUpdateNow" class="btn green" type="button">Jetzt aktualisieren</button>
-      </div>
-      <div class="hint" style="margin-top:8px;">Hinweis: Deine Kunden bleiben erhalten.</div>
-    </div>
-
