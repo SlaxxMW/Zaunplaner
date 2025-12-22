@@ -240,11 +240,12 @@ let gateUiIdx=0; let gateCollapsed=false;
       label: "VALU",
       // Quelle: VALU Alu-Sichtschutz (Profile: Blockhaus, Konkav, Duo; Primus 140×20 u.a.)
       lamellen: [
-        "Blockhaus 140×20",
-        "Konkav 140×20",
-        "Lamellenprofil Duo 154×20",
-        "Profil Primus 140×20",
-        "Lamellenprofil (Standard)"
+        "140×20 glatt (VALU)",
+        "140×20 geriffelt (VALU)",
+        "140×8 Federprofil/Lamelle (VALU)",
+        "88×8 Federprofil/Lamelle (VALU)",
+        "Füllprofil Rhombus 80×20 (VALU)",
+        "Füllprofil Rhombus MAX 140×20 (VALU)"
       ],
       pfosten: [
         "Alu-Pfosten (zum Einbetonieren)",
@@ -252,19 +253,11 @@ let gateUiIdx=0; let gateCollapsed=false;
         "Eck-/Endpfosten (System)"
       ],
       farben: [
-        "Anthrazit (z.B. RAL 7016 FS)",
-        "Silber / Weißaluminium (z.B. RAL 9006 FS)",
-        "Weiß (z.B. RAL 9016/9010)",
-        "Wunsch-RAL / Sonderfarbe"
-      ]
-    },
-
-    traumgarten: {
-      label: "Traumgarten",
-      // Quelle: Traumgarten Katalog „Pflegeleichte Zaunsysteme“ (SYSTEM ALU XL, 6 Farben)
-      lamellen: [
-        "SYSTEM ALU XL Steckprofil 30×2 (ausgeschäumt)",
-        "Dekorprofil (z.B. Omega)"
+        "Blank (Alu natur)",
+        "RAL 7016 Anthrazit",
+        "RAL 9006 Hellgrau / Weißaluminium",
+        "Holzoptik",
+        "Sonder‑RAL (editierbar)"
       ],
       pfosten: [
         "Klemmpfosten",
@@ -286,9 +279,9 @@ let gateUiIdx=0; let gateCollapsed=false;
       label: "Brix",
       // Quelle: Brix Lamello (Blocco/Decco/130) + Standardfarben/RAL/Holzdekor
       lamellen: [
-        "Lamello Blocco (blickdicht, ohne Abstand)",
-        "Lamello Decco (mit Abstand)",
-        "Lamello 130 (blickdicht, leichter)"
+        "Lamello Blocco 150 mm (ohne Abstand, blickdicht)",
+        "Lamello Decco 150 mm (mit Abstand)",
+        "Lamello 130 mm (blickdicht)"
       ],
       pfosten: [
         "Brix Pfosten (zum Einbetonieren)",
@@ -387,7 +380,52 @@ let gateUiIdx=0; let gateCollapsed=false;
   }
 
 
-  function setAluExtrasVisible(det, sys){
+  
+  // Aluminium: Feld-/Elementbreite (für Stückzahl-Berechnung)
+  const ALU_FIELD_WIDTH_PRESETS_CM = [100,120,150,160,178,180,200,250];
+
+  function defaultAluFieldWidthCm(brand){
+    const b = aluBrandKey(brand);
+    if(b==="traumgarten") return 178;
+    if(b==="valu") return 180;
+    return 180;
+  }
+
+  function fillAluFieldWidthSelect(sel){
+    if(!sel) return;
+    sel.innerHTML = "";
+    ALU_FIELD_WIDTH_PRESETS_CM.forEach(n=>{
+      const o=document.createElement("option");
+      o.value=String(n);
+      o.textContent = `${n} cm`;
+      sel.appendChild(o);
+    });
+    const oc=document.createElement("option");
+    oc.value="custom";
+    oc.textContent="(eigene Eingabe…)";
+    sel.appendChild(oc);
+  }
+
+  function parseAluFieldWidthCm(value, customValue, brand){
+    const v = String(value||"").trim();
+    if(v==="custom"){
+      const n = clampInt(toNum(String(customValue||"").trim(),0), 50, 600);
+      return n || defaultAluFieldWidthCm(brand);
+    }
+    const n = clampInt(toNum(v,0), 50, 600);
+    return n || defaultAluFieldWidthCm(brand);
+  }
+
+  function getAluFieldWidthCm(obj){
+    try{
+      const brand = aluBrandKey(obj && obj.aluBrand ? obj.aluBrand : "valu");
+      return parseAluFieldWidthCm(obj && (obj.aluFieldWidth||obj.aluFieldWidthCm), obj && (obj.aluFieldWidthCustom||obj.aluFieldWidthCustomCm), brand);
+    }catch(_){
+      return 180;
+    }
+  }
+
+function setAluExtrasVisible(det, sys){
     if(!det) return;
     const show = (normSystem(sys)==="Aluminium");
     det.querySelectorAll('.jsAluOnly').forEach(el=>{ el.style.display = show ? '' : 'none'; });
@@ -401,6 +439,8 @@ let gateUiIdx=0; let gateCollapsed=false;
     const lamSel = det.querySelector('select[data-k="aluLamella"]');
     const postSel = det.querySelector('select[data-k="aluPost"]');
     const colorSel = det.querySelector('select[data-k="color"]');
+    const wSel = det.querySelector('select[data-k="aluFieldWidth"]');
+    const wCus = det.querySelector('input[data-k="aluFieldWidthCustom"]');
 
     const brand = aluBrandKey(brandSel ? brandSel.value : 'valu');
     if(brandSel) brandSel.value = brand;
@@ -415,6 +455,30 @@ let gateUiIdx=0; let gateCollapsed=false;
       const keep = String(postSel.value||"").trim();
       fillSelect(postSel, cfg.pfosten, null);
       if(keep && Array.from(postSel.options).some(o=>o.value===keep)) postSel.value = keep;
+    }
+
+
+    // Feldbreite (cm) — für Stückzahl-Berechnung
+    if(wSel){
+      const keepW = String(wSel.value||"").trim();
+      const keepCus = String(wCus ? (wCus.value||"") : "").trim();
+      fillAluFieldWidthSelect(wSel);
+      // Restore or default
+      let want = keepW;
+      if(!want){
+        want = String(defaultAluFieldWidthCm(brand));
+      }
+      const presetVals = Array.from(wSel.options).map(o=>o.value);
+      if(want!=="custom" && !presetVals.includes(String(want))){
+        wSel.value="custom";
+        if(wCus) { wCus.style.display=""; wCus.value = keepCus || String(want); }
+      }else{
+        wSel.value = want;
+        if(wCus){
+          if(wSel.value==="custom"){ wCus.style.display=""; wCus.value = keepCus || ""; }
+          else { wCus.style.display="none"; }
+        }
+      }
     }
 
     if(colorSel){
@@ -726,7 +790,7 @@ function escapeHtml(s) {
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-  const APP_VERSION = "1.4.49";
+  const APP_VERSION = "1.4.50";
   const APP_BUILD = "2025-12-22";
   const APP_NAME = "Zaunteam Zaunplaner";
 
@@ -1783,7 +1847,19 @@ function computeTotals(c){
       ? segs.reduce((a,s)=>a + toNum(s.length ?? s.lengthM,0), 0)
       : toNum(c && c.length,0);
 
-    const panels = totalLen>0 ? Math.ceil(totalLen / PANEL_W) : 0;
+    const panels = segmentsActive
+      ? segs.reduce((a,s)=>{
+          const lenSeg = Math.max(0,toNum(s.length ?? s.lengthM,0));
+          if(!lenSeg) return a;
+          const sysSeg = normSystem((s.system||c.system||"Doppelstab"));
+          if(sysSeg==="Aluminium"){
+            const wCm = getAluFieldWidthCm(s);
+            const wM = Math.max(0.5, Number(wCm)/100);
+            return a + Math.ceil(lenSeg / wM);
+          }
+          return a + Math.ceil(lenSeg / PANEL_W);
+        }, 0)
+      : (totalLen>0 ? Math.ceil(totalLen / PANEL_W) : 0);
 
     // Posts: contiguous fence => panels + 1 (wenn es überhaupt Panels gibt)
     const posts = panels>0 ? (panels + 1) : 0;
@@ -1888,9 +1964,14 @@ function computeTotals(c){
 
   function sysLabel(c){
     const h=Number(c.height)||160;
-    const base = (c.system==="Doppelstab")?"Doppelstab‑Matten":(c.system==="Aluminium")?"Alu‑Elemente":(c.system==="Holz")?"Holz‑Elemente":(c.system==="WPC")?"WPC‑Elemente":(c.system==="Diagonal Geflecht")?"Diagonal‑Geflecht":(c.system==="Tornado")?"Tornado‑Zaun":(c.system==="Elektrozaun")?"Elektrozaun":"Zaun‑Elemente";
+    const base = (c.system==="Doppelstab")?"Doppelstab‑Matten":(c.system==="Aluminium")?"Alu‑Lamellen":(c.system==="Holz")?"Holz‑Elemente":(c.system==="WPC")?"WPC‑Elemente":(c.system==="Diagonal Geflecht")?"Diagonal‑Geflecht":(c.system==="Tornado")?"Tornado‑Zaun":(c.system==="Elektrozaun")?"Elektrozaun":"Zaun‑Elemente";
     // Elektrozaun hat keine 2,50m-Elemente wie Matten – nur Stromleiter.
     if(c.system==="Elektrozaun") return `${base} • ${h} cm`;
+    if(c.system==="Aluminium"){
+      const wCm = getAluFieldWidthCm(c);
+      const wM = Math.max(0.5, Number(wCm)/100);
+      return `${base} ${fmt(wM)}m • ${h} cm`;
+    }
     return `${base} 2,50m • ${h} cm`;
   }
 
@@ -1943,7 +2024,28 @@ function computeTotals(c){
         leaves,
         split,
         qty: clampInt(gg.qty, 0, 20),
-        text: `${gateTypeLabel(c.gateType)} — ${opening}cm LW (${leafTxt}) • H ${Number(gg.height)||160}cm`
+        fenceSystem: String(gg.fenceSystem||"").trim() || "doppelstab",
+        aluBrand: gg.aluBrand,
+        aluLamella: gg.aluLamella,
+        aluColor: gg.aluColor,
+        weideBrand: gg.weideBrand,
+        weideModel: gg.weideModel,
+        text: `${gateTypeLabel(c.gateType)} — ${opening}cm LW (${leafTxt}) • H ${Number(gg.height)||160}cm${(()=>{
+          const fs=String(gg.fenceSystem||"").trim();
+          if(fs==="alu"){
+            const b=aluBrandKey(gg.aluBrand||"valu");
+            const bl=(ALU_BRANDS[b]&&ALU_BRANDS[b].label)?ALU_BRANDS[b].label:"Alu";
+            const prof=gg.aluLamella?` • ${gg.aluLamella}`:"";
+            const col=gg.aluColor?` • ${gg.aluColor}`:"";
+            return ` • Alu (${bl})${prof}${col}`;
+          }
+          if(fs==="weide"){
+            const m=gg.weideModel?` ${gg.weideModel}`:"";
+            return ` • Weide (Patura${m})`;
+          }
+          if(fs==="holz") return ` • Holz`;
+          return ` • Doppelstab`;
+        })()}`
       };
     }).filter(g=>g.qty>0);
 
@@ -1957,7 +2059,13 @@ function computeTotals(c){
     // Beton nur für Zaunarten mit Fundament (keine Elektrozaun- oder Weidezaun-Pfosten)
     const g = gateSummary(c);
     const gateCount = Number(g.total||0);
-    const gateHoles = gateCount*2; // Torpfosten (2 pro Tor)
+    const gateHoles = (g.rows||[]).reduce((a,r)=>{
+      const fs=String(r.fenceSystem||"").trim();
+      const q=Number(r.qty||0);
+      if(!q) return a;
+      if(fs==="weide" || fs==="elektro") return a;
+      return a + q*2;
+    },0); // Torpfosten (nur bei Fundament-Systemen)
 
     let normalHoles = 0;
 
@@ -2084,8 +2192,17 @@ function computeTotals(c){
       for(const s of segs){
         const len = Math.max(0,toNum(s.length ?? s.lengthM,0));
         if(!len) continue;
-        const panels = Math.ceil(len / PANEL_W);
-        const tmp = Object.assign({}, c, {system: (s.system||c.system), height:(s.height||c.height)});
+        const sysSeg = normSystem((s.system||c.system||"Doppelstab"));
+        const panels = (sysSeg==="Aluminium")
+          ? (()=>{ const wCm=getAluFieldWidthCm(s); const wM=Math.max(0.5, Number(wCm)/100); return Math.ceil(len / wM); })()
+          : Math.ceil(len / PANEL_W);
+        const tmp = Object.assign({}, c, {
+          system: (s.system||c.system),
+          height: (s.height||c.height),
+          aluBrand: (s.aluBrand||c.aluBrand||"valu"),
+          aluFieldWidth: (s.aluFieldWidth||""),
+          aluFieldWidthCustom: (s.aluFieldWidthCustom||"")
+        });
         const lab = sysLabel(tmp);
         sysMap.set(lab, (sysMap.get(lab)||0) + panels);
       }
@@ -2570,6 +2687,25 @@ function computeTotals(c){
     g.openingCm = opening;
     g.leaves = leaves;
     g.split = split;
+
+    // Zaunart fürs Tor (Default: aktuelles System)
+    const defSys = normSystem(c.system||"Doppelstab");
+    const defFence = (defSys==="Aluminium") ? "alu"
+      : (defSys==="Holz" ? ((String(c.woodClass||"")==="weide" || !!c.woodIsWeide) ? "weide" : "holz")
+      : "doppelstab");
+
+    g.fenceSystem = String(g.fenceSystem||g.fence||"").trim() || defFence;
+
+    if(g.fenceSystem==="alu"){
+      g.aluBrand = aluBrandKey(g.aluBrand || c.aluBrand || "valu");
+      if(g.aluLamella==null) g.aluLamella = "";
+      if(g.aluColor==null) g.aluColor = "";
+    }
+    if(g.fenceSystem==="weide"){
+      g.weideBrand = "patura";
+      if(!g.weideModel) g.weideModel = "150 cm";
+    }
+
     return g;
   }
 
@@ -2715,6 +2851,31 @@ function computeTotals(c){
         <label>Tor‑Höhe</label>
         <select class="gateH"></select>
       </div>
+      <div>
+        <label>Zaunart</label>
+        <select class="gateFence">
+          <option value="doppelstab">Doppelstab</option>
+          <option value="holz">Holz</option>
+          <option value="alu">Aluminium</option>
+          <option value="weide">Weidezaun</option>
+        </select>
+      </div>
+      <div class="gateAluOnly" style="display:none;">
+        <label>Alu Hersteller</label>
+        <select class="gateAluBrand"></select>
+      </div>
+      <div class="gateAluOnly" style="display:none;">
+        <label>Alu Profil</label>
+        <select class="gateAluLam"></select>
+      </div>
+      <div class="gateAluOnly" style="display:none;">
+        <label>Alu Farbe</label>
+        <select class="gateAluColor"></select>
+      </div>
+      <div class="gateWeideOnly" style="display:none;">
+        <label>Weidetor (Patura)</label>
+        <select class="gateWeideModel"></select>
+      </div>
       ${leafHtml}
       <div>
         <label>Menge</label>
@@ -2737,6 +2898,80 @@ function computeTotals(c){
       selQ.appendChild(o);
     }
     selQ.value=String(g.qty);
+
+    // Tor: Zaunart + systemabhängige Optionen (minimal, ohne externe Abhängigkeiten)
+    const selFence=row.querySelector(".gateFence");
+    if(selFence){
+      const defSys = normSystem(c.system||"Doppelstab");
+      const defFence = (defSys==="Aluminium") ? "alu"
+        : (defSys==="Holz" ? ((String(c.woodClass||"")==="weide" || !!c.woodIsWeide) ? "weide" : "holz")
+        : "doppelstab");
+      selFence.value = String(g.fenceSystem||g.fence||"").trim() || defFence;
+    }
+
+    const gateToggleExtras = ()=>{
+      const fence = (selFence && selFence.value) ? selFence.value : "doppelstab";
+      row.querySelectorAll(".gateAluOnly").forEach(el=>{ el.style.display = (fence==="alu") ? "" : "none"; });
+      row.querySelectorAll(".gateWeideOnly").forEach(el=>{ el.style.display = (fence==="weide") ? "" : "none"; });
+    };
+    gateToggleExtras();
+
+    // Aluminium Gate: Hersteller/Profil/Farbe
+    const selAB=row.querySelector(".gateAluBrand");
+    const selAL=row.querySelector(".gateAluLam");
+    const selAC=row.querySelector(".gateAluColor");
+    if(selAB){
+      selAB.innerHTML="";
+      ["valu","traumgarten","brix","baumann"].forEach(k=>{
+        const o=document.createElement("option");
+        o.value=k;
+        o.textContent = (ALU_BRANDS[k] && ALU_BRANDS[k].label) ? ALU_BRANDS[k].label : k;
+        selAB.appendChild(o);
+      });
+      selAB.value = aluBrandKey(g.aluBrand||"valu");
+
+      const rebuildAlu = ()=>{
+        const b = aluBrandKey(selAB.value||"valu");
+        // Profil
+        if(selAL){
+          const list = (ALU_BRANDS[b] && Array.isArray(ALU_BRANDS[b].lamellen)) ? ALU_BRANDS[b].lamellen : [];
+          fillSelect(selAL, list.length?list:["(Standard)"], list[0]||"(Standard)");
+          if(g.aluLamella) ensureOption(selAL, g.aluLamella);
+          if(!selAL.value) selAL.value = g.aluLamella || (list[0]||"(Standard)");
+        }
+        // Farbe
+        if(selAC){
+          const cols = getAluColors(b);
+          fillSelect(selAC, cols, cols[0]||"");
+          if(g.aluColor) ensureOption(selAC, g.aluColor);
+          if(!selAC.value) selAC.value = g.aluColor || (cols[0]||"");
+        }
+      };
+      rebuildAlu();
+
+      selAB.addEventListener("change", ()=>{ rebuildAlu(); persistGatesFromUI(); });
+      if(selAL) selAL.addEventListener("change", ()=>{ persistGatesFromUI(); });
+      if(selAC) selAC.addEventListener("change", ()=>{ persistGatesFromUI(); });
+    }
+
+    // Weidetor (Patura) — einfache Modellliste
+    const selWM=row.querySelector(".gateWeideModel");
+    if(selWM){
+      const models=["100 cm","120 cm","150 cm","200 cm","250 cm","300 cm","350 cm","400 cm","(eigene Eingabe…)"];
+      selWM.innerHTML="";
+      models.forEach(v=>{
+        const o=document.createElement("option");
+        o.value=v; o.textContent=v;
+        selWM.appendChild(o);
+      });
+      if(g.weideModel) ensureOption(selWM, g.weideModel);
+      selWM.value = String(g.weideModel||"").trim() || "150 cm";
+      selWM.addEventListener("change", ()=>{ persistGatesFromUI(); });
+    }
+
+    if(selFence){
+      selFence.addEventListener("change", ()=>{ gateToggleExtras(); persistGatesFromUI(); });
+    }
 
     const inpOpen=row.querySelector(".gateOpen");
     if(inpOpen) inpOpen.value = String(g.openingCm||"");
@@ -2855,15 +3090,45 @@ function computeTotals(c){
     const c=p.customer; ensureGateDefaults(c);
     if(!gateRows) return;
     const rows=[...gateRows.querySelectorAll(".gateRow")];
+    const n = gateLeafCount(c.gateType);
+
     c.gates = rows.map(r=>{
       const hEl = r.querySelector(".gateH");
-      const wEl = r.querySelector(".gateW");
       const qEl = r.querySelector(".gateQ");
+      const fenceEl = r.querySelector(".gateFence");
+
       const h = Number(hEl && hEl.value) || 160;
-      const w = clampInt((wEl && wEl.value) || "", 50, 400);
       const q = clampInt((qEl && qEl.value) || "", 0, 20);
-      return {height:h, widthCm:w, qty:q};
+
+      const openEl = r.querySelector(".gateOpen");
+      const openVal = clampInt((openEl && openEl.value) || "", 50, 600);
+
+      let leaves = [];
+      const leafEls = [...r.querySelectorAll(".gateLeaf")];
+      if(leafEls.length){
+        leaves = leafEls.map(elm=>clampInt(elm.value||"", 0, 600));
+      }
+
+      const splitEl = r.querySelector(".gateSplit");
+      const split = (splitEl && splitEl.value==="asym") ? "asym" : "equal";
+
+      const fence = String((fenceEl && fenceEl.value) || "").trim() || "doppelstab";
+
+      const g = {height:h, qty:q, openingCm:openVal, leaves:leaves, split:split, fenceSystem:fence};
+
+      if(fence==="alu"){
+        const b = aluBrandKey(r.querySelector(".gateAluBrand")?.value || "valu");
+        g.aluBrand = b;
+        g.aluLamella = String(r.querySelector(".gateAluLam")?.value || "").trim();
+        g.aluColor = String(r.querySelector(".gateAluColor")?.value || "").trim();
+      }
+      if(fence==="weide"){
+        g.weideBrand = "patura";
+        g.weideModel = String(r.querySelector(".gateWeideModel")?.value || "").trim();
+      }
+      return g;
     });
+
     try{
       const cc = computeConcrete(c);
       c.concreteValue = concreteDisplayValue(c, cc);
@@ -4406,6 +4671,14 @@ function refreshCustomerUI(){
                     <label>Pfosten</label>
                     <select data-k="aluPost"></select>
                   </div>
+                  <div style="grid-column: span 3;">
+                    <label>Feldbreite (cm)</label>
+                    <div class="row" style="gap:8px; align-items:center;">
+                      <select data-k="aluFieldWidth" style="flex:1;"></select>
+                      <input data-k="aluFieldWidthCustom" inputmode="numeric" placeholder="cm" style="flex:1; display:none;" />
+                    </div>
+                    <div class="hint">Für die Stückzahl‑Berechnung (Feldbreite). Profilbreite steckt im Profilnamen.</div>
+                  </div>
                   <div style="grid-column: span 3;" class="hint">
                     Farbe oben wird bei Alu automatisch nach Hersteller gefiltert.
                   </div>
@@ -4731,6 +5004,10 @@ function refreshCustomerUI(){
             s.aluBrand = aluBrandKey(bSel ? String(bSel.value||"") : (s.aluBrand||"valu"));
             s.aluLamella = lSel ? String(lSel.value||"").trim() : (s.aluLamella||"");
             s.aluPost = pSel ? String(pSel.value||"").trim() : (s.aluPost||"");
+            const wSel = det.querySelector('select[data-k="aluFieldWidth"]');
+            const wCus = det.querySelector('input[data-k="aluFieldWidthCustom"]');
+            s.aluFieldWidth = wSel ? String(wSel.value||"").trim() : (s.aluFieldWidth||"");
+            s.aluFieldWidthCustom = wCus ? String(wCus.value||"").trim() : (s.aluFieldWidthCustom||"");
           }
           // Holz/Weide Auswahl (nur wenn System=Holz)
           if(sysN==="Holz"){
@@ -4831,6 +5108,23 @@ function refreshCustomerUI(){
             commit();
           });
         }
+
+        const aluWSel = det.querySelector('select[data-k="aluFieldWidth"]');
+        const aluWCus = det.querySelector('input[data-k="aluFieldWidthCustom"]');
+        if(aluWSel){
+          aluWSel.addEventListener("change", (ev)=>{
+            try{ ev.stopImmediatePropagation(); }catch(_){}
+            if(aluWCus){
+              aluWCus.style.display = (aluWSel.value==="custom") ? "" : "none";
+            }
+            commit();
+          });
+        }
+        if(aluWCus){
+          aluWCus.addEventListener("change", ()=>{ commit(); });
+          aluWCus.addEventListener("keyup", (ev)=>{ if(ev && ev.key==="Enter"){ commit(); }});
+        }
+
 
 
         // Aluminium: "+ Farbe" Button (speichert pro Hersteller) + "(eigene Eingabe…)" Option
