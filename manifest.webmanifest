@@ -1,18 +1,19 @@
 {
-  "name": "Arbeitszeiterfassung",
-  "short_name": "Arbeitszeit",
-  "start_url": "./index.html",
+  "name": "Zaunplaner",
+  "short_name": "Zaunplaner",
+  "start_url": "./?v=1.4.45",
+  "scope": "/Zaunplaner/",
   "display": "standalone",
-  "background_color": "#f5f5f5",
-  "theme_color": "#A1C51D",
+  "background_color": "#111827",
+  "theme_color": "#7ac141",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "/Zaunplaner/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "/Zaunplaner/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
