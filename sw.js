@@ -1,11 +1,11 @@
 /* Zaunplaner SW — Auto-Update + Safe Cache (keine Kundendaten löschen) */
-const CACHE_VERSION = "1.4.43";
+const CACHE_VERSION = "1.4.44";
 const CACHE_NAME = `zaunplaner-${CACHE_VERSION}`;
 
 const CORE = [
   "./",
-  "./index.html?v=1.4.43",
-  "./app.js?v=1.4.43",
+  "./index.html?v=1.4.44",
+  "./app.js?v=1.4.44",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png"
@@ -26,7 +26,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.map(k => (k.startsWith("zaunplaner-") && k !== CACHE_NAME) ? caches.delete(k) : null));
+    await Promise.all(keys.map(k => ((k.startsWith("zaunplaner-") && k !== CACHE_NAME) && !k.includes("state-cache")) ? caches.delete(k) : null));
     self.clients.claim();
   })());
 });
@@ -54,7 +54,7 @@ self.addEventListener("fetch", (event) => {
         return fresh;
       } catch (e) {
         const cache = await caches.open(CACHE_NAME);
-        return (await cache.match(req)) || (await cache.match("./index.html?v=1.4.43")) || (await cache.match("./"));
+        return (await cache.match(req)) || (await cache.match("./index.html?v=1.4.44")) || (await cache.match("./"));
       }
     })());
     return;
@@ -78,7 +78,7 @@ self.addEventListener("message", (event) => {
       event.waitUntil((async()=>{
         try{
           const keys = await caches.keys();
-          await Promise.all(keys.map(k => (k.startsWith("zaunplaner-")) ? caches.delete(k) : null));
+          await Promise.all(keys.map(k => (k.startsWith("zaunplaner-") && !k.includes("state-cache")) ? caches.delete(k) : null));
         }catch(e){}
         try{ self.skipWaiting(); }catch(e){}
       })());

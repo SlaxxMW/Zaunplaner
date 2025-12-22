@@ -532,9 +532,37 @@ function escapeHtml(s) {
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-  const APP_VERSION = "1.4.43";
+  const APP_VERSION = "1.4.44";
   const APP_BUILD = "2025-12-22";
   const APP_NAME = "Zaunteam Zaunplaner";
+
+  // iOS / PWA Erkennung (für robuste Hinweise – iOS kann Storage in Safari-Tabs aggressiv räumen)
+  const IS_IOS = (()=>{
+    try{
+      const ua = navigator.userAgent || "";
+      const iOS = /iPad|iPhone|iPod/i.test(ua);
+      const iPadOS = (navigator.platform === "MacIntel" && (navigator.maxTouchPoints||0) > 1);
+      return iOS || iPadOS;
+    }catch(_){ return false; }
+  })();
+  function isStandalone(){
+    try{
+      return (!!(window.navigator && window.navigator.standalone)) ||
+        (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+    }catch(_){ return false; }
+  }
+  async function requestPersistentStorage(){
+    try{
+      if(!navigator.storage || !navigator.storage.persist) return {supported:false, persisted:null, granted:null};
+      const persisted = await navigator.storage.persisted();
+      if(persisted) return {supported:true, persisted:true, granted:true};
+      const granted = await navigator.storage.persist();
+      return {supported:true, persisted:!!granted, granted:!!granted};
+    }catch(_){ return {supported:false, persisted:null, granted:null}; }
+  }
+
+  let PERSIST_INFO = {supported:false, persisted:null, granted:null};
+  let STORAGE_EST = null;
 
   // Default-Settings (offline-first, kein Tracking)
   const DEFAULT_SETTINGS = {
@@ -677,7 +705,9 @@ function escapeHtml(s) {
   
 // CacheStorage Mirror (3. Backup-Schicht)
 // Hinweis: iOS kann einzelne Storage-Arten löschen; wir spiegeln daher zusätzlich in Cache Storage.
-const STATE_CACHE_NAME = "zaunplaner-state-cache-v1";
+// Achtung: Der Service Worker räumt Caches mit Prefix "zaunplaner-" auf.
+// Deshalb darf dieser Cache NICHT so heißen, sonst wird der State beim Update gelöscht.
+const STATE_CACHE_NAME = "zp-state-cache-v2";
 const STATE_CACHE_KEY = "/__zp_state__.json";
 
 async function cacheSet(value){
@@ -1025,7 +1055,14 @@ function currentProject() {
 
       const info = el("supportInfo");
       if(info){
-        info.innerHTML = `Version: <b>${escapeHtml(APP_VERSION)}</b> • Build: <b>${escapeHtml(APP_BUILD)}</b>`;
+        const standalone2 = isStandalone();
+        const env2 = `${location.protocol}//${location.host}${location.pathname}`;
+        const persistLine = (PERSIST_INFO && PERSIST_INFO.supported) ? (PERSIST_INFO.persisted ? "persist: ✅" : "persist: ⚠️") : "persist: —";
+        const estLine = (STORAGE_EST && (STORAGE_EST.quota||STORAGE_EST.usage)) ? ` • Storage: ${Math.round((STORAGE_EST.usage||0)/1024/1024)}MB / ${Math.round((STORAGE_EST.quota||0)/1024/1024)}MB` : "";
+        info.innerHTML = `Version: <b>${escapeHtml(APP_VERSION)}</b> • Build: <b>${escapeHtml(APP_BUILD)}</b><br>`+
+          `Modus: <b>${standalone2?"Installiert (PWA)":"Browser"}</b> • ${persistLine}${estLine}<br>`+
+          `iOS: <b>${IS_IOS?"ja":"nein"}</b><br>`+
+          `<span class="hint">${escapeHtml(env2)}</span>`;
       }
       const btnMail = el("btnSupportMail");
       if(btnMail){
@@ -1610,6 +1647,29 @@ function computeTotals(c){
     // Elektrozaun hat keine 2,50m-Elemente wie Matten – nur Stromleiter.
     if(c.system==="Elektrozaun") return `${base} • ${h} cm`;
     return `${base} 2,50m • ${h} cm`;
+  }
+
+  function sysLabelWithColor(c){
+    try{
+      const col = (c && c.color) ? String(c.color).trim() : "";
+      const base = sysLabel(c);
+      return col ? `${base} • ${col}` : base;
+    }catch(_){
+      return sysLabel(c);
+    }
+  }
+
+  function shortSys(sys){
+    const s = String(sys||"").trim();
+    if(!s) return "Zaun";
+    if(s==="Diagonal Geflecht") return "Diagonal";
+    return s;
+  }
+
+  function labelWithSysColor(prefix, sys, color){
+    const s = shortSys(sys);
+    const col = String(color||"").trim();
+    return col ? `${prefix} — ${s} • ${col}` : `${prefix} — ${s}`;
   }
 
   // Tore (Varianten)
@@ -2725,9 +2785,11 @@ function computeTotals(c){
       // Sichtschutz nur als Gesamt-Rollen (keine Streifen-Liste).
       let started=false;
 
-      const normalByH = new Map();   // height -> qty
-      const cornersByH = new Map();  // height -> qty
-      const stripsByH  = new Map();  // height -> qty (Pfostenleisten = alle Pfosten)
+      // Standard-Zaun: je System + Farbe + (Pfosten-/Zaunhöhe) gruppieren, damit es im Chef-Tab auch
+      // bei gemischten Segmenten übersichtlich bleibt.
+      const normalByH = new Map();   // key -> qty
+      const cornersByH = new Map();  // key -> qty
+      const stripsByH  = new Map();  // key -> qty
       
       const electroNormal = new Map(); // key -> qty
       const electroCorners = new Map(); // key -> qty
@@ -2760,6 +2822,7 @@ let privacyStripM_total = 0;
         const len = Math.max(0,toNum(s.length ?? s.lengthM,0));
         const h = clampInt(s.height||c.height||160);
         const sys = (s.system||c.system||"Doppelstab");
+        const col = String(s.color || c.color || "").trim();
 
         let panels = 0; // nur für Matten/Elemente relevant
         let posts = 0;
@@ -2784,9 +2847,9 @@ let privacyStripM_total = 0;
         const cornersSeg = clampInt(s.corners||0,0,posts);
         const normalPosts = Math.max(0, posts - cornersSeg);
         // Matten/Elemente nur bei NICHT-Elektrozaun (Elektrozaun hat Stromleiter statt Matten)
-        const sysObj = { system: sys, height: h };
+        const sysObj = { system: sys, height: h, color: col };
         if(normSystem(sys)!=="Elektrozaun" && !(normSystem(sys)==="Holz" && (String(s.woodClass||"")==="weide" || !!s.woodIsWeide || String(s.woodBuild||"")==="boards"))){
-          const matLbl = `Abschnitt ${label} — ${sysLabel(sysObj)}`;
+          const matLbl = `Abschnitt ${label} — ${sysLabel(sysObj)}${col?" • "+col:""}`;
           auto.push({ k:`auto_matten_${label}`, label: matLbl, qty: panels, unit:"Stk" });
         }
 
@@ -2873,10 +2936,13 @@ let privacyStripM_total = 0;
           if(bandM>0)  weideBandByRoll.set(bandRoll,  (weideBandByRoll.get(bandRoll)||0)  + bandM);
 
           // Isolatoren: abhängig von Leiter-Art + Anzahl Pfosten/Ecken
-} else {
-          normalByH.set(h, (normalByH.get(h)||0) + normalPosts);
-          cornersByH.set(h, (cornersByH.get(h)||0) + cornersSeg);
-          stripsByH.set(h, (stripsByH.get(h)||0) + posts);
+        } else {
+          const ds = (sys==="Doppelstab");
+          const pLen = ds ? h : postLenCm(h);
+          const key = `${sys}||${pLen}||${col}`;
+          normalByH.set(key, (normalByH.get(key)||0) + normalPosts);
+          cornersByH.set(key, (cornersByH.get(key)||0) + cornersSeg);
+          stripsByH.set(key, (stripsByH.get(key)||0) + posts);
         }
 // Sichtschutz: nur Gesamt-Rollen zählen (aus Streifen-Metern)
         if(String(s.privacy||"no")==="yes"){
@@ -2886,14 +2952,24 @@ let privacyStripM_total = 0;
       }
 
       // Pfosten/Eckpfosten/Leisten als Gesamtsumme je Höhe
-      const heights = Array.from(new Set([ ...normalByH.keys(), ...cornersByH.keys(), ...stripsByH.keys() ])).sort((a,b)=>a-b);
-      for(const h of heights){
-        const n = normalByH.get(h)||0;
-        const e = cornersByH.get(h)||0;
-        const l = stripsByH.get(h)||0;
-        if(n>0) auto.push({ k:`auto_pfosten_${h}`, label:`Pfosten ${h} cm`, qty:n, unit:"Stk" });
-        if(e>0) auto.push({ k:`auto_eckpfosten_${h}`, label:`Eckpfosten ${h} cm`, qty:e, unit:"Stk" });
-        if(l>0) auto.push({ k:`auto_leisten_${h}`, label:`Pfostenleisten ${h} cm`, qty:l, unit:"Stk" });
+      const keys = Array.from(new Set([ ...normalByH.keys(), ...cornersByH.keys(), ...stripsByH.keys() ]));
+      keys.sort((a,b)=>{
+        const pa = toNum(String(a).split("||")[1]||"", 9999);
+        const pb = toNum(String(b).split("||")[1]||"", 9999);
+        if(pa!==pb) return pa-pb;
+        return String(a).localeCompare(String(b),"de",{sensitivity:"base",numeric:true});
+      });
+      for(const key of keys){
+        const parts = String(key).split("||");
+        const sys = parts[0]||"Zaun";
+        const pLen = parts[1]||"";
+        const col = parts.slice(2).join("||");
+        const n = normalByH.get(key)||0;
+        const e = cornersByH.get(key)||0;
+        const l = stripsByH.get(key)||0;
+        if(n>0) auto.push({ k:`auto_pfosten_${sys}_${pLen}_${String(col).replace(/\W+/g,"_")}`.slice(0,80), label: labelWithSysColor(`Pfosten ${pLen} cm`, sys, col), qty:n, unit:"Stk" });
+        if(e>0) auto.push({ k:`auto_eckpfosten_${sys}_${pLen}_${String(col).replace(/\W+/g,"_")}`.slice(0,80), label: labelWithSysColor(`Eckpfosten ${pLen} cm`, sys, col), qty:e, unit:"Stk" });
+        if(l>0) auto.push({ k:`auto_leisten_${sys}_${pLen}_${String(col).replace(/\W+/g,"_")}`.slice(0,80), label: labelWithSysColor(`Pfostenleisten ${pLen} cm`, sys, col), qty:l, unit:"Stk" });
       }
       // Elektrozaun-Pfosten nach Holzart/Länge
       if((electroNormal && electroNormal.size) || (electroCorners && electroCorners.size)){
@@ -3005,16 +3081,16 @@ let privacyStripM_total = 0;
       const sys = (c.system||"Doppelstab");
       const pLen = postLenCm(h);
 
-      auto.push({ k:"auto_matten", label: sysLabel(c), qty:t.panels||0, unit:"Stk" });
+      auto.push({ k:"auto_matten", label: sysLabelWithColor(c), qty:t.panels||0, unit:"Stk" });
 
       if(sys==="Doppelstab"){
-        auto.push({ k:`auto_pfosten_${h}`, label:`Pfosten ${h} cm`, qty:t.posts||0, unit:"Stk" });
-        auto.push({ k:`auto_eckpfosten_${h}`, label:`Eckpfosten ${h} cm`, qty:t.cornerPosts||0, unit:"Stk" });
-        auto.push({ k:`auto_leisten_${h}`, label:`Pfostenleisten ${h} cm`, qty:t.postStrips||0, unit:"Stk" });
+        auto.push({ k:`auto_pfosten_${h}`, label: labelWithSysColor(`Pfosten ${h} cm`, sys, c.color), qty:t.posts||0, unit:"Stk" });
+        auto.push({ k:`auto_eckpfosten_${h}`, label: labelWithSysColor(`Eckpfosten ${h} cm`, sys, c.color), qty:t.cornerPosts||0, unit:"Stk" });
+        auto.push({ k:`auto_leisten_${h}`, label: labelWithSysColor(`Pfostenleisten ${h} cm`, sys, c.color), qty:t.postStrips||0, unit:"Stk" });
       }else{
-        auto.push({ k:`auto_pfosten_${pLen}`, label:`Pfosten ${pLen} cm`, qty:t.posts||0, unit:"Stk" });
-        auto.push({ k:`auto_eckpfosten_${pLen}`, label:`Eckpfosten ${pLen} cm`, qty:t.cornerPosts||0, unit:"Stk" });
-        auto.push({ k:"auto_leisten", label:"Pfostenleisten", qty:t.postStrips||0, unit:"Stk" });
+        auto.push({ k:`auto_pfosten_${pLen}`, label: labelWithSysColor(`Pfosten ${pLen} cm`, sys, c.color), qty:t.posts||0, unit:"Stk" });
+        auto.push({ k:`auto_eckpfosten_${pLen}`, label: labelWithSysColor(`Eckpfosten ${pLen} cm`, sys, c.color), qty:t.cornerPosts||0, unit:"Stk" });
+        auto.push({ k:"auto_leisten", label: labelWithSysColor("Pfostenleisten", sys, c.color), qty:t.postStrips||0, unit:"Stk" });
       }
     }
 
@@ -4557,6 +4633,10 @@ try{ cacheSet(JSON.stringify(state)); }catch(_){}
 
     await migrateLegacy();
 
+    // Storage Persist (best-effort) + Storage Estimate
+    try{ PERSIST_INFO = await requestPersistentStorage(); }catch(_){ }
+    try{ if(navigator.storage && navigator.storage.estimate) STORAGE_EST = await navigator.storage.estimate(); }catch(_){ }
+
     // Always keep version current
     state.version = APP_VERSION;
 
@@ -4564,6 +4644,16 @@ try{ cacheSet(JSON.stringify(state)); }catch(_){}
     try{ await restoreFromIndexedDBIfNeeded(); }catch(_){}
 
     refreshAll();
+
+    // iOS-Hinweis: wenn nicht installiert, kann iOS Storage beim Schließen räumen.
+    try{
+      if(IS_IOS && !isStandalone() && location.protocol!=="file:"){
+        toast("⚠️ iPhone/iPad Hinweis", "Für dauerhaften Speicher: Als Web-App installieren (Teilen → 'Zum Home-Bildschirm')");
+      }
+      if(location.protocol==="file:"){
+        toast("⚠️ Datei-Modus", "Wenn du die HTML aus 'Dateien' öffnest, kann nichts dauerhaft gespeichert werden. Bitte über https öffnen/installieren.");
+      }
+    }catch(_){ }
     try{ save(); }catch(_){ } // einmal sauber persistieren (write-through)
   }catch(e){
     try{
@@ -4572,6 +4662,16 @@ try{ cacheSet(JSON.stringify(state)); }catch(_){}
     }catch(_){}
   }
 })();
+
+  // Last-chance persist (iOS killt Tabs gerne ohne Vorwarnung)
+  try{
+    window.addEventListener("pagehide", ()=>{ try{ save(); }catch(_){ } });
+    document.addEventListener("visibilitychange", ()=>{
+      if(document.visibilityState==="hidden"){
+        try{ save(); }catch(_){ }
+      }
+    });
+  }catch(_){ }
 
 /******************************************************************
    * Settings Tab – Buttons / Toggles
