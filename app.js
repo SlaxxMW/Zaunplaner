@@ -42,85 +42,19 @@ let gateUiIdx=0; let gateCollapsed=false;
 
   // Farben (realistische Standardfarben – erweitert)
   // Hinweis: Segment-Editor nutzt zusätzlich systemabhängige Vorschläge (siehe COLOR_BY_SYSTEM).
-  const ZAUNTEAM_FARBEN = [
-    // Metall / Standard
-    "Anthrazit (RAL 7016)",
-    "Moosgrün (RAL 6005)",
-    "Schwarz (RAL 9005)",
-    "Weiß (RAL 9016)",
-    "Steingrau (RAL 7030)",
-    "Basaltgrau (RAL 7012)",
-    "Silbergrau (RAL 7001)",
-    "Aluminiumgrau (RAL 9006)",
-    "Feuerverzinkt / Natur",
-    // Holz / WPC (gängige Dekore)
-    "Holz Natur (Lärche)",
-    "Holz Teak",
-    "Holz Nussbaum",
-    "Holz Grau",
-    "WPC Anthrazit",
-    "WPC Steingrau",
-    "WPC Sand",
-    "WPC Teak",
-    "WPC Braun"
-  ];
+
+  // Katalog / Herstellerdaten ausgelagert (siehe ./src/catalog.js)
+  const __CAT = (window.ZS_CATALOG || {});
+  const ZAUNTEAM_FARBEN = __CAT.ZAUNTEAM_FARBEN;
+  const COLOR_BY_SYSTEM = __CAT.COLOR_BY_SYSTEM;
+  const ALU_BRANDS = __CAT.ALU_BRANDS;
+  const ALU_FIELD_WIDTH_PRESETS_CM = __CAT.ALU_FIELD_WIDTH_PRESETS_CM;
+  if(!ZAUNTEAM_FARBEN || !COLOR_BY_SYSTEM || !ALU_BRANDS){
+    console.warn('[Zaunplaner] Katalog nicht geladen – prüfe Reihenfolge der Script-Tags.');
+  }
+
 
   // Systemabhängige Farb-Vorschläge (damit "realistische" Farben pro Material gewählt werden)
-  const COLOR_BY_SYSTEM = {
-    "Doppelstab": [
-      "Anthrazit (RAL 7016)",
-      "Moosgrün (RAL 6005)",
-      "Schwarz (RAL 9005)",
-      "Weiß (RAL 9016)",
-      "Steingrau (RAL 7030)",
-      "Basaltgrau (RAL 7012)",
-      "Feuerverzinkt / Natur"
-    ],
-    "Diagonalgeflecht": [
-      "Anthrazit (RAL 7016)",
-      "Moosgrün (RAL 6005)",
-      "Feuerverzinkt / Natur"
-    ],
-    "Tornado": [
-      "Anthrazit (RAL 7016)",
-      "Moosgrün (RAL 6005)",
-      "Feuerverzinkt / Natur"
-    ],
-    "Elektrozaun": [
-      "Natur / Verzinkt",
-      "Schwarz (RAL 9005)"
-    ],
-    "Aluminium": [
-      "Anthrazit (RAL 7016)",
-      "DB 703 (Eisenglimmer)",
-      "Schwarz (RAL 9005)",
-      "Weiß (RAL 9016)",
-      "Aluminiumgrau (RAL 9006)",
-      "Silbergrau (RAL 7001)"
-    ],
-    "Holz": [
-      "Holz Natur (Kiefer/Fichte, kdi)",
-      "Holz Natur (Douglasie)",
-      "Holz Natur (Lärche)",
-      "Holz Natur (Robinie)",
-      "Holz Natur (Kastanie)",
-      "Holz Thermoholz (Esche)",
-      "Holz Thermoholz (Kiefer)",
-      "Holz Bangkirai",
-      "Holz Teak",
-      "Holz Nussbaum",
-      "Holz Eiche hell",
-      "Holz Grau (geölt)",
-      "Holz Schwarz (Lasur)"
-    ],
-    "WPC": [
-      "WPC Anthrazit",
-      "WPC Steingrau",
-      "WPC Sand",
-      "WPC Teak",
-      "WPC Braun"
-    ]
-  };
   const HOLZARTEN = ["—","Lärche","Douglasie","Kiefer","Fichte","Eiche"];
   const WPC_VARIANTEN = ["—","glatt","geriffelt","co-extrudiert"];
   const ELECTRO_WOOD_SUGGESTIONS = ["Robinie","Kastanie","Lärche","Douglasie","Kiefer (kdi)","Fichte (kdi)","Thermoholz","Bambus"];
@@ -235,92 +169,6 @@ let gateUiIdx=0; let gateCollapsed=false;
 
   // Aluminium (Aluninium) — Hersteller-Auswahl (Lamellen/Pfosten/Farben je Hersteller)
   // Hinweis: Praxisnahes Preset (nicht vollständig). Eigene Werte bleiben immer möglich.
-  const ALU_BRANDS = {
-    valu: {
-      label: "VALU",
-      // Quelle: VALU Alu-Sichtschutz (Profile: Blockhaus, Konkav, Duo; Primus 140×20 u.a.)
-      lamellen: [
-        "140×20 glatt (VALU)",
-        "140×20 geriffelt (VALU)",
-        "140×8 Federprofil/Lamelle (VALU)",
-        "88×8 Federprofil/Lamelle (VALU)",
-        "Füllprofil Rhombus 80×20 (VALU)",
-        "Füllprofil Rhombus MAX 140×20 (VALU)"
-      ],
-      pfosten: [
-        "Alu-Pfosten (zum Einbetonieren)",
-        "Alu-Pfosten (zum Aufschrauben)",
-        "Eck-/Endpfosten (System)"
-      ],
-      farben: [
-        "Blank (Alu natur)",
-        "RAL 7016 Anthrazit",
-        "RAL 9006 Hellgrau / Weißaluminium",
-        "Holzoptik",
-        "Sonder‑RAL (editierbar)"
-      ],
-      pfosten: [
-        "Klemmpfosten",
-        "Eck-Klemmpfosten",
-        "Torpfosten"
-      ],
-      farben: [
-        "Anthrazit",
-        "Silber",
-        "Weiß (Grundfarbton für Sonderfarbe)",
-        "Lärche (Naturoptik)",
-        "Bambus (Naturoptik)",
-        "Vintage Oak (Naturoptik)",
-        "Sonderfarbe (auf Basis Weiß)"
-      ]
-    },
-
-    brix: {
-      label: "Brix",
-      // Quelle: Brix Lamello (Blocco/Decco/130) + Standardfarben/RAL/Holzdekor
-      lamellen: [
-        "Lamello Blocco 150 mm (ohne Abstand, blickdicht)",
-        "Lamello Decco 150 mm (mit Abstand)",
-        "Lamello 130 mm (blickdicht)"
-      ],
-      pfosten: [
-        "Brix Pfosten (zum Einbetonieren)",
-        "Brix Pfosten (zum Aufdübeln)",
-        "Brix Torpfosten"
-      ],
-      farben: [
-        "Brix Anthrazit-Metallic",
-        "RAL 7016 Anthrazitgrau",
-        "RAL 9006 Weißaluminium",
-        "RAL 8017 Schokoladebraun",
-        "RAL 6005 Moosgrün",
-        "RAL 9010 Reinweiß",
-        "RAL K7 Sonderfarbe",
-        "DB-/Strukturfarbe",
-        "Holzdekor"
-      ]
-    },
-
-    baumann: {
-      label: "Baumann",
-      // Quelle: Baumann (Alu/Kunststoff auf Maß, Alu in jeder Farbe beschichtbar)
-      lamellen: [
-        "Alu-Sichtschutz (Maßanfertigung)",
-        "Alu-Zaun (Maßanfertigung)",
-        "Alu + Kunststoff kombiniert"
-      ],
-      pfosten: [
-        "Alu-Pfosten (zum Einbetonieren)",
-        "Alu-Pfosten (zum Aufschrauben)",
-        "Torpfosten"
-      ],
-      farben: [
-        "Wunschfarbe (RAL/DB – Pulverbeschichtung)",
-        "Sonderfarbe / Struktur",
-        "Holzimitation (bei Kunststoff-Kombi)"
-      ]
-    }
-  };
 
 
   const aluBrandKey = (v)=>{
@@ -382,7 +230,6 @@ let gateUiIdx=0; let gateCollapsed=false;
 
   
   // Aluminium: Feld-/Elementbreite (für Stückzahl-Berechnung)
-  const ALU_FIELD_WIDTH_PRESETS_CM = [100,120,150,160,178,180,200,250];
 
   function defaultAluFieldWidthCm(brand){
     const b = aluBrandKey(brand);
@@ -790,7 +637,7 @@ function escapeHtml(s) {
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-  const APP_VERSION = "1.4.50";
+  const APP_VERSION = "1.4.51";
   const APP_BUILD = "2025-12-22";
   const APP_NAME = "Zaunteam Zaunplaner";
 

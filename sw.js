@@ -1,11 +1,13 @@
 /* Zaunplaner SW — Auto-Update + Safe Cache (keine Kundendaten löschen) */
-const CACHE_VERSION = "1.4.50";
+const CACHE_VERSION = "1.4.51";
 const CACHE_NAME = `zaunplaner-${CACHE_VERSION}`;
 
 const CORE = [
   "./",
-  "./index.html?v=1.4.50",
-  "./app.js?v=1.4.50",
+  "./index.html?v=1.4.51",
+  "./styles.css?v=1.4.51",
+  "./src/catalog.js?v=1.4.51",
+  "./app.js?v=1.4.51",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png"
@@ -41,6 +43,8 @@ self.addEventListener("fetch", (event) => {
   const isCoreFile =
     url.pathname.endsWith("/index.html") ||
     url.pathname.endsWith("/app.js") ||
+    url.pathname.endsWith("/styles.css") ||
+    url.pathname.endsWith("/src/catalog.js") ||
     url.pathname.endsWith("/manifest.webmanifest") ||
     url.pathname.endsWith("/sw.js");
 
@@ -54,7 +58,7 @@ self.addEventListener("fetch", (event) => {
         return fresh;
       } catch (e) {
         const cache = await caches.open(CACHE_NAME);
-        return (await cache.match(req)) || (await cache.match("./index.html?v=1.4.50")) || (await cache.match("./"));
+        return (await cache.match(req)) || (await cache.match("./index.html?v=1.4.51")) || (await cache.match("./"));
       }
     })());
     return;
