@@ -1,12 +1,14 @@
-[README.txt](https://github.com/user-attachments/files/24291587/README.txt)
-Zaunteam Zaunplaner v1.4
+# Arbeitszeiterfassung PWA (v1.4.0)
 
-1) index.html im Browser öffnen (Chrome/Edge).
-2) Daten werden lokal im Browser gespeichert.
-3) Backup-Tab: 'Backup.json (alles)' regelmäßig downloaden und in Firmenordner sichern.
+- Offline nutzbar (PWA) + GitHub Pages kompatibel
+- Datenhaltung: IndexedDB (bleibt bei Updates erhalten)
+- Feiertage nach Bundesland (Default: Bayern, Mariä Himmelfahrt aktiv)
 
-Exports:
-- Kunde.txt (WhatsApp/Übersicht)
-- Intern.txt (Team/Chef)
-- Material.csv (für Excel/Firmensoftware)
-- Zaunplaner_Backup.json (alles inkl. Fotos)
+## Start (lokal)
+Einfach über einen lokalen Webserver öffnen (nicht per Datei-Doppelklick), z.B. mit VS Code Live Server oder Python.
+
+## GitHub Pages
+Repository erstellen → Dateien hochladen → Settings → Pages → Deploy from branch.
+
+## Export/Import
+Einstellungen → Export/Import (CSV / PDF / Backup JSON)
