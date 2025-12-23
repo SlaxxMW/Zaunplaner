@@ -637,7 +637,7 @@ function escapeHtml(s) {
     return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   }
 
-  const APP_VERSION = "1.4.51";
+  const APP_VERSION = "1.4.52";
   const APP_BUILD = "2025-12-22";
   const APP_NAME = "Zaunteam Zaunplaner";
 
@@ -1249,13 +1249,16 @@ function currentProject() {
     });
   }
   function fillSelect(sel, arr, defVal) {
-    sel.innerHTML="";
-    arr.forEach(v => {
-      const o=document.createElement("option");
-      o.value=v; o.textContent=v;
+    if(!sel) return;
+    sel.innerHTML = "";
+    const list = Array.isArray(arr) ? arr : (arr ? [String(arr)] : []);
+    list.forEach(v => {
+      const o = document.createElement("option");
+      o.value = String(v);
+      o.textContent = String(v);
       sel.appendChild(o);
     });
-    if(defVal!=null) sel.value=defVal;
+    if(defVal!=null) sel.value = String(defVal);
   }
 
   // Behalte benutzerdefinierte Werte in Selects (falls nicht in den Optionen enthalten)
