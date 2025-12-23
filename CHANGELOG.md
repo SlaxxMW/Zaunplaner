@@ -62,3 +62,6 @@
 - Zaunteam-Farben im UI (grün/rot)
 - Update-Anzeige + Update-Button (Service Worker) + Cache/Update-Reset
 - PDF Export (Monat/Jahr) als Download
+
+## 1.6.4b (20251223-090542)
+- Android Layout-Fix: CSS+JS in index.html eingebettet, um Host/MIME/Redirect-Probleme auszuschließen.
