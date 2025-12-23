@@ -1,71 +1,91 @@
-/* sw.js - Service Worker for offline use + update banner support (hardened for Android installability) */
-const APP_VERSION = '1.6.4d';
-const CACHE_NAME = `az-pwa-${APP_VERSION}`;
+/* Zaunplaner SW — Auto-Update + Safe Cache (keine Kundendaten löschen) */
+const CACHE_VERSION = "1.4.53";
+const CACHE_NAME = `zaunplaner-${CACHE_VERSION}`;
 
-// Minimal precache: must never 404, otherwise SW install fails and Android won't offer "Install".
-const PRECACHE_URLS = [
-  './',
-  './index.html',
-  './manifest.webmanifest',
-  './version.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+const CORE = [
+  "./",
+  "./index.html?v=1.4.53",
+  "./styles.css?v=1.4.53",
+  "./src/catalog.js?v=1.4.53",
+  "./app.js?v=1.4.53",
+  "./manifest.webmanifest",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
-self.addEventListener('install', (event) => {
-  event.waitUntil((async ()=>{
+self.addEventListener("message", (e) => {
+  if (e.data && e.data.type === "SKIP_WAITING") self.skipWaiting();
+});
+
+self.addEventListener("install", (event) => {
+  event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    await cache.addAll(PRECACHE_URLS);
+    await cache.addAll(CORE);
     self.skipWaiting();
   })());
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil((async ()=>{
+self.addEventListener("activate", (event) => {
+  event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.map(k => (k.startsWith('az-pwa-') && k !== CACHE_NAME) ? caches.delete(k) : Promise.resolve()));
-    await self.clients.claim();
+    await Promise.all(keys.map(k => ((k.startsWith("zaunplaner-") && k !== CACHE_NAME) && !k.includes("state-cache")) ? caches.delete(k) : null));
+    self.clients.claim();
   })());
 });
 
-self.addEventListener('message', (event) => {
-  if(event.data && event.data.type === 'SKIP_WAITING'){
-    self.skipWaiting();
-  }
-});
-
-self.addEventListener('fetch', (event) => {
+self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  if(url.origin !== self.location.origin) return;
+  if (url.origin !== self.location.origin) return;
 
-  // Navigations: network-first with cache fallback (stable for updates)
-  if(req.mode === 'navigate'){
-    event.respondWith((async ()=>{
-      const cache = await caches.open(CACHE_NAME);
-      try{
-        const resp = await fetch(req);
-        if(resp && resp.ok) await cache.put('./index.html', resp.clone());
-        return resp;
-      }catch(_e){
-        return (await cache.match('./index.html')) || (await cache.match('./')) || Response.error();
+  const isHTML = req.mode === "navigate" || (req.headers.get("accept") || "").includes("text/html");
+  const isCoreFile =
+    url.pathname.endsWith("/index.html") ||
+    url.pathname.endsWith("/app.js") ||
+    url.pathname.endsWith("/styles.css") ||
+    url.pathname.endsWith("/src/catalog.js") ||
+    url.pathname.endsWith("/manifest.webmanifest") ||
+    url.pathname.endsWith("/sw.js");
+
+  // Always fetch fresh for HTML + core files (updates)
+  if (isHTML || isCoreFile) {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(req, { cache: "no-store" });
+        const cache = await caches.open(CACHE_NAME);
+        cache.put(req, fresh.clone());
+        return fresh;
+      } catch (e) {
+        const cache = await caches.open(CACHE_NAME);
+        return (await cache.match(req)) || (await cache.match("./index.html?v=1.4.53")) || (await cache.match("./"));
       }
     })());
     return;
   }
 
-  // Static: cache-first, then network
-  event.respondWith((async ()=>{
+  // Cache-first for everything else
+  event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
     const cached = await cache.match(req);
-    if(cached) return cached;
-    try{
-      const resp = await fetch(req);
-      if(resp && resp.ok && req.method === 'GET') await cache.put(req, resp.clone());
-      return resp;
-    }catch(_e){
-      return Response.error();
-    }
+    if (cached) return cached;
+    const fresh = await fetch(req);
+    cache.put(req, fresh.clone());
+    return fresh;
   })());
+});
+
+self.addEventListener("message", (event) => {
+  try{
+    if(!event || !event.data) return;
+    if(event.data.type==="FORCE_UPDATE"){
+      event.waitUntil((async()=>{
+        try{
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => (k.startsWith("zaunplaner-") && !k.includes("state-cache")) ? caches.delete(k) : null));
+        }catch(e){}
+        try{ self.skipWaiting(); }catch(e){}
+      })());
+    }
+  }catch(e){}
 });
