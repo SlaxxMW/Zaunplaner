@@ -65,3 +65,8 @@
 
 ## 1.6.4b (20251223-090542)
 - Android Layout-Fix: CSS+JS in index.html eingebettet, um Host/MIME/Redirect-Probleme auszuschließen.
+
+
+## 1.6.4d (2025-12-23)
+- Android: Installierbarkeit gehärtet (Manifest+SW Scope/StartURL, Precache minimal, keine Precache-404s)
+- Android/iOS: Layout unverändert (gleich wie 1.6.4b)

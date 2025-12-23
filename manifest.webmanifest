@@ -1,13 +1,12 @@
 {
   "name": "Arbeitszeiterfassung",
   "short_name": "Arbeitszeit",
-  "id": "./",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui", "browser"],
   "background_color": "#f5f5f5",
   "theme_color": "#A1C51D",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "icons/icon-192.png",
